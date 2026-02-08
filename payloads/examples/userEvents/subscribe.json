@@ -1,0 +1,10 @@
+{
+  "channel": "subscriptionResponse",
+  "data": {
+    "method": "subscribe",
+    "subscription": {
+      "type": "userEvents",
+      "user": "0xc5fdde670e647823dbf07a09c452fe3f33df8677"
+    }
+  }
+}

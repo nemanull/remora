@@ -1,0 +1,99 @@
+{
+  "marginSummary": {
+    "accountValue": "19.469597",
+    "totalNtlPos": "41.815236",
+    "totalRawUsd": "20.153633",
+    "totalMarginUsed": "9.847944"
+  },
+  "crossMarginSummary": {
+    "accountValue": "14.735542",
+    "totalNtlPos": "20.455556",
+    "totalRawUsd": "15.140298",
+    "totalMarginUsed": "5.113889"
+  },
+  "crossMaintenanceMarginUsed": "0.772142",
+  "withdrawable": "9.621653",
+  "assetPositions": [
+    {
+      "type": "oneWay",
+      "position": {
+        "coin": "SOL",
+        "szi": "0.12",
+        "leverage": { "type": "isolated", "value": 5, "rawUsd": "-8.420096" },
+        "entryPx": "87.668",
+        "positionValue": "10.5402",
+        "unrealizedPnl": "0.02004",
+        "returnOnEquity": "0.00952457",
+        "liquidationPx": "71.9666324786",
+        "marginUsed": "2.120104",
+        "maxLeverage": 20,
+        "cumFunding": {
+          "allTime": "0.0",
+          "sinceOpen": "0.0",
+          "sinceChange": "0.0"
+        }
+      }
+    },
+    {
+      "type": "oneWay",
+      "position": {
+        "coin": "XRP",
+        "szi": "7.0",
+        "leverage": { "type": "cross", "value": 4 },
+        "entryPx": "1.4306",
+        "positionValue": "10.0254",
+        "unrealizedPnl": "0.0112",
+        "returnOnEquity": "0.0044736474",
+        "liquidationPx": null,
+        "marginUsed": "2.50635",
+        "maxLeverage": 20,
+        "cumFunding": {
+          "allTime": "0.0",
+          "sinceOpen": "0.0",
+          "sinceChange": "0.0"
+        }
+      }
+    },
+    {
+      "type": "oneWay",
+      "position": {
+        "coin": "HYPE",
+        "szi": "-0.34",
+        "leverage": { "type": "isolated", "value": 4, "rawUsd": "13.433431" },
+        "entryPx": "31.619",
+        "positionValue": "10.81948",
+        "unrealizedPnl": "-0.06902",
+        "returnOnEquity": "-0.0256807616",
+        "liquidationPx": "37.6286582633",
+        "marginUsed": "2.613951",
+        "maxLeverage": 10,
+        "cumFunding": {
+          "allTime": "0.0",
+          "sinceOpen": "0.0",
+          "sinceChange": "0.0"
+        }
+      }
+    },
+    {
+      "type": "oneWay",
+      "position": {
+        "coin": "PUMP",
+        "szi": "-4906.0",
+        "leverage": { "type": "cross", "value": 4 },
+        "entryPx": "0.002084",
+        "positionValue": "10.430156",
+        "unrealizedPnl": "-0.206052",
+        "returnOnEquity": "-0.0806142035",
+        "liquidationPx": "0.0048366554",
+        "marginUsed": "2.607539",
+        "maxLeverage": 10,
+        "cumFunding": {
+          "allTime": "-0.000199",
+          "sinceOpen": "0.0",
+          "sinceChange": "0.0"
+        }
+      }
+    }
+  ],
+  "time": 1770515716022
+}
