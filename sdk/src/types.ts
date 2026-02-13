@@ -1,24 +1,17 @@
-export type Position_Type = "LONG" | "SHORT";
+export type PositionType = "LONG" | "SHORT";
 export type LeverageMode = "CROSS" | "ISOLATED";
-export type PositionStatus = "OPEN" | "CLOSED" | "LIQUIDATED";
+export type PositionStatus =
+  | "OPENING"
+  | "OPEN"
+  | "CLOSING"
+  | "CLOSED"
+  | "LIQUIDATED"
+  | "ERROR";
 
 // Decimal values are represented as base-10 strings to avoid floating point
 // precision issues across JSON boundaries.
 // Example: "0.5", "12000", "-1.2345"
 export type Decimal = string;
-
-export type MarginSummary = {
-  accountValue: Decimal;
-  totalNtlPos: Decimal;
-  totalRawUsd: Decimal;
-  totalMarginUsed: Decimal;
-};
-
-export type FundingCumulative = {
-  allTime: Decimal;
-  sinceOpen: Decimal;
-  sinceChange: Decimal;
-};
 
 export type Wallet = {
   wallet_id: string; // e.g. `${address}:${exchange}`
@@ -29,34 +22,44 @@ export type Wallet = {
   first_timestamp: Date;
   last_timestamp: Date;
 
-  balance_snapshots: BalanceSnapshot[];
+  is_personal: boolean;
 
-  // positions
-  wallet_positions: WalletPosition[];
+  balance_snapshots: BalanceSnapshot[];
+  positions: WalletPosition[];
 };
 
 export type BalanceSnapshot = {
   snapshot_id: string; // e.g. `${address}:${exchange}:${timestamp_ms}`
+  wallet_id: string;
 
-  margin_summary: MarginSummary;
-  cross_margin_summary: MarginSummary;
+  // margin_summary (flattened)
+  margin_account_value: Decimal;
+  margin_total_ntl_pos: Decimal;
+  margin_total_raw_usd: Decimal;
+  margin_total_margin_used: Decimal;
+
+  // cross_margin_summary (flattened)
+  cross_account_value: Decimal;
+  cross_total_ntl_pos: Decimal;
+  cross_total_raw_usd: Decimal;
+  cross_total_margin_used: Decimal;
 
   cross_maintenance_margin_used_usd: Decimal;
   withdrawable_usd: Decimal;
 
   timestamp: Date;
-}
-
+};
 
 export type WalletPosition = {
   position_id: string; // e.g. `${address}:${market}:${opened_at_ms}`
+  wallet_id: string;
 
   hash: string; // from userEvents
   address: string; // user address
   market: string; // market name, e.g. "HYPE:USDC-PERP"
 
-  direction_type: Position_Type;
-  platform_specific_position_type: string; // oneWay and hedge on hyperliquid
+  direction_type: PositionType;
+  platform_specific_position_type: string; // oneWay/hedge on hyperliquid
 
   leverage_mode: LeverageMode;
   leverage_value: Decimal;
@@ -69,19 +72,24 @@ export type WalletPosition = {
   opened_at: Date;
   closed_at?: Date;
 
-  metrics: PositionMetricsSnapshot;
-  internal_metrics: PositionInternalMetrics;
-
   status: PositionStatus;
+
+  // self-relation: personal position → tracked position it was copied from
+  copied_from_id?: string;
+
+  metrics?: PositionMetrics;
+  internal_metrics?: PositionInternalMetrics;
 };
 
 export type PositionInternalMetrics = {
-  position_copied: string | false; // an id that I opened based on this one or just false if it wasn't copied
+  position_id: string;
   position_reasonability_score?: Decimal; // 0.0000 to 1.0000, higher is more credible
-  description?: string; 
-}
+  description?: string;
+};
 
-export type PositionMetricsSnapshot = {
+export type PositionMetrics = {
+  position_id: string;
+
   // Position size in quote/base currency (platform-dependent), e.g. 200 HYPE
   asset_size: Decimal;
   // Position value in USD, e.g. 12000 USDC
