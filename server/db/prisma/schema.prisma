@@ -19,9 +19,12 @@ enum LeverageMode {
 }
 
 enum PositionStatus {
+  OPENING
   OPEN
+  CLOSING
   CLOSED
   LIQUIDATED
+  ERROR
 }
 
 model Wallet {
@@ -35,6 +38,8 @@ model Wallet {
 
   balanceSnapshots BalanceSnapshot[]
   positions        WalletPosition[]
+
+  isPersonal Boolean @default(false) @map("is_personal")
 
   @@index([address])
 }
@@ -91,6 +96,11 @@ model WalletPosition {
 
   status PositionStatus
 
+  // self-relation: personal position → tracked position it was copied from
+  copiedFromId String?         @unique @map("copied_from_id")
+  copiedFrom   WalletPosition? @relation("CopyLink", fields: [copiedFromId], references: [positionId], onDelete: SetNull)
+  copiedBy     WalletPosition? @relation("CopyLink")
+
   metrics PositionMetrics?
   internalMetrics PositionInternalMetrics?
 
@@ -98,6 +108,7 @@ model WalletPosition {
   @@index([market])
   @@index([address])
   @@index([hash])
+  @@index([copiedFromId])
 }
 
 model PositionInternalMetrics {
@@ -105,8 +116,6 @@ model PositionInternalMetrics {
   positionId String         @id @map("position_id")
   position   WalletPosition @relation(fields: [positionId], references: [positionId], onDelete: Cascade)
 
-  // null means "false" (not copied)
-  positionCopiedId String?  @map("position_copied")
   positionReasonabilityScore Decimal? @map("position_reasonability_score")
   description String?
 }
