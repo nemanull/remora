@@ -1,6 +1,6 @@
-import { Inject, Injectable } from '@nestjs/common';
+import { Injectable } from '@nestjs/common';
 import { validateWallet } from '@copy-quant/sdk';
-import { CLUSTER_ID_TOKEN } from './dc.module';
+import { resolveClusterIdFromEnv } from './dc.tokens';
 
 export interface WalletValidationResult {
   success: boolean;
@@ -14,7 +14,7 @@ export interface WalletValidationResult {
 
 @Injectable()
 export class WalletValidationService {
-  constructor(@Inject(CLUSTER_ID_TOKEN) private readonly clusterId: number) {}
+  private readonly clusterId = resolveClusterIdFromEnv();
 
   async checkAllWallets(wallets: string[]): Promise<WalletValidationResult> {
     if (!Array.isArray(wallets) || wallets.length === 0) {

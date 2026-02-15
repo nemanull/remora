@@ -1,14 +1,15 @@
-import { Body, Controller, Inject, Post } from '@nestjs/common';
+import { Body, Controller, Post } from '@nestjs/common';
 import { DetectionClusterService } from './dc.service';
-import { CLUSTER_ID_TOKEN } from './dc.module';
+import { resolveClusterIdFromEnv } from './dc.tokens';
 import { WalletValidationService } from './walletValidator';
 
 @Controller('cluster')
 export class DetectionClusterController {
+  private readonly clusterId = resolveClusterIdFromEnv();
+
   constructor(
     private readonly detectionClusterService: DetectionClusterService,
     private readonly walletValidationService: WalletValidationService,
-    @Inject(CLUSTER_ID_TOKEN) private readonly clusterId: number,
   ) {}
 
   @Post('start')
