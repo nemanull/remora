@@ -65,6 +65,7 @@ export class WsBroadcastManager implements OnModuleInit, OnModuleDestroy {
       socket.on("message", (rawMessage) =>
         this.handleClientMessage(socket, rawMessage.toString()),
       );
+      socket.on("ping", () => socket.pong());
       socket.on("close", () => this.clients.delete(socket));
       socket.on("error", (err) =>
         this.logger.warn(`client error: ${String(err)}`),
@@ -173,7 +174,43 @@ export class WsBroadcastManager implements OnModuleInit, OnModuleDestroy {
           message: "WebSocket server is running",
         }),
       );
+      return;
     }
+
+    if (this.handlePing(ws, rawMessage)) {
+      return;
+    }
+  }
+
+  private handlePing(ws: WebSocket, rawMessage: string): boolean {
+    let parsed: unknown;
+    try {
+      parsed = JSON.parse(rawMessage);
+    } catch {
+      return false;
+    }
+    if (
+      parsed &&
+      typeof parsed === "object" &&
+      "type" in parsed &&
+      "message" in parsed &&
+      (parsed as { type: string; message: string }).type === "info" &&
+      (parsed as { type: string; message: string }).message === "ping"
+    ) {
+      this.sendPong(ws);
+      return true;
+    }
+    return false;
+  }
+
+  private sendPong(ws: WebSocket): void {
+    ws.send(
+      JSON.stringify({
+        type: "pong",
+        timestamp: Date.now(),
+        timestampIso: new Date().toISOString(),
+      }),
+    );
   }
 
   async onModuleDestroy() {
