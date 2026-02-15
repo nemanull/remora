@@ -29,15 +29,9 @@ export class wsWalletConnectionEstablishmentService {
   private connection: boolean = false;
   private wallet: string;
   private pingTimer?: NodeJS.Timeout;
-  private readonly onEvent?: (event: WalletStreamEvent) => void;
 
-
-  constructor(
-    wallet: string,
-    onEvent?: (event: WalletStreamEvent) => void,
-  ) {
+  constructor(wallet: string) {
     this.wallet = wallet;
-    this.onEvent = onEvent;
   }
 
 
