@@ -10,11 +10,18 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
       "default": "./dist/index.js"
     },
     "./types": {
       "types": "./dist/types.d.ts",
+      "import": "./dist/types.js",
       "default": "./dist/types.js"
+    },
+    "./hyperliquid": {
+      "types": "./dist/hyperliquid.d.ts",
+      "import": "./dist/hyperliquid.js",
+      "default": "./dist/hyperliquid.js"
     }
   },
   "main": "./dist/index.js",
