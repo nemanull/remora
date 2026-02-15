@@ -11,7 +11,7 @@ export class DetectionClusterController {
     @Inject(CLUSTER_ID_TOKEN) private readonly clusterId: number,
   ) {}
 
-  @Post('setup')
+  @Post('start')
   async startDetection(@Body('wallets') wallets: string[]) {
     const validationResult = await this.walletValidationService.checkAllWallets(
       wallets,
@@ -25,7 +25,7 @@ export class DetectionClusterController {
       wallet.toLowerCase(),
     );
 
-    await this.detectionClusterService.startDetection(normalizedWallets);
+    await this.detectionClusterService.startDetectionForAllWallets(normalizedWallets);
 
     return {
       success: true,

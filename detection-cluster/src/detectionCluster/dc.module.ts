@@ -25,7 +25,7 @@ function resolveClusterId(): number {
       useFactory: resolveClusterId,
     },
     DetectionClusterService,
-    WalletValidationService,
+    WalletValidationService
   ],
   exports: [DetectionClusterService],
 })
