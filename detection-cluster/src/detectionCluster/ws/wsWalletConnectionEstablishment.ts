@@ -79,7 +79,7 @@ export class wsWalletConnectionEstablishmentService {
     });
 
     this.ws.on('message', (rawData) => {
-      this.handleIncomingMessage(rawData);
+      // TODO: Parse the raw data and broadcast it to the listeners
     });
   }
 
@@ -157,112 +157,4 @@ export class wsWalletConnectionEstablishmentService {
       this.pingTimer = undefined;
     }
   }
-
-  // Broadcasting events to all listeners
-  // ------------------------------------------------
-
-  private handleIncomingMessage(rawData: WebSocket.RawData) {
-    const payloadAsString = this.rawDataToString(rawData);
-    if(!payloadAsString) {
-      return;
-    }
-
-    try {
-      const parsedPayload = JSON.parse(payloadAsString);
-      const typedEvent = this.resolveEventPayload(parsedPayload);
-      if(!typedEvent) {
-        return;
-      }
-
-      if(typedEvent.channel === 'userFills') {
-        this.onEvent?.({
-          wallet: this.wallet,
-          type: 'userFills',
-          payload: typedEvent,
-        });
-        return;
-      }
-
-      this.onEvent?.({
-        wallet: this.wallet,
-        type: 'clearinghouseState',
-        payload: typedEvent,
-      });
-      
-    } catch (error) {
-      const errMessage =
-        error instanceof Error ? error.message : 'unknown parse error';
-      this.logger.warn(`Failed to parse incoming message for wallet ${this.wallet}: ${errMessage}`);
-    }
-  }
-
-  private rawDataToString(rawData: WebSocket.RawData): string | null {
-    if(typeof rawData === 'string') {
-      return rawData;
-    }
-
-    if(rawData instanceof Buffer) {
-      return rawData.toString('utf-8');
-    }
-
-    if(Array.isArray(rawData)) {
-      return Buffer.concat(rawData).toString('utf-8');
-    }
-
-    if(rawData instanceof ArrayBuffer) {
-      return Buffer.from(rawData).toString('utf-8');
-    }
-
-    return null;
-  }
-
-  private resolveEventPayload(payload: unknown): HyperliquidTrackedWsEvent | null {
-    if(!this.isRecord(payload)) {
-      return null;
-    }
-
-    if(this.isUserFillsEvent(payload)) {
-      return payload;
-    }
-
-    if(this.isClearinghouseStateEvent(payload)) {
-      return payload;
-    }
-
-    return null;
-  }
-
-  private isUserFillsEvent(payload: Record<string, unknown>): payload is HyperliquidWsUserFillsEvent {
-    if(payload.channel !== 'userFills' || !this.isRecord(payload.data)) {
-      return false;
-    }
-
-    const data = payload.data;
-    return typeof data.user === 'string' && Array.isArray(data.fills);
-  }
-
-  private isClearinghouseStateEvent(
-    payload: Record<string, unknown>,
-  ): payload is HyperliquidWsClearinghouseStateEvent {
-    if(payload.channel !== 'clearinghouseState' || !this.isRecord(payload.data)) {
-      return false;
-    }
-
-    const data = payload.data;
-    return (
-      typeof data.user === 'string' &&
-      typeof data.dex === 'string' &&
-      this.isRecord(data.clearinghouseState)
-    );
-  }
-
-  private isRecord(value: unknown): value is Record<string, unknown> {
-    return typeof value === 'object' && value !== null;
-  }
-
-
-
-
-
-
 }

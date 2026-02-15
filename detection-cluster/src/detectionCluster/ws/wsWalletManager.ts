@@ -20,7 +20,7 @@ export class wsWalletManager {
     }
 
     this.wallet = wallet;
-    this.wsWCEService = new wsWCEService(this.wallet, this.handleIncomingEvent);
+    this.wsWCEService = new wsWCEService(this.wallet);
   }
 
 
@@ -28,28 +28,5 @@ export class wsWalletManager {
     this.wsWCEService.establishConnection();
   }
 
-  onEvent(listener: (event: WalletStreamEvent) => void): () => void {
-    this.listeners.add(listener);
-    return () => {
-      this.listeners.delete(listener);
-    };
-  }
-
-  private readonly handleIncomingEvent = (event: WalletStreamEvent) => {
-    this.Logger.debug(
-      `Received wallet event "${event.type}" for wallet ${event.wallet}`,
-    );
-
-    for(const listener of this.listeners) {
-      try {
-        listener(event);
-      } catch (error) {
-        const errMessage = error instanceof Error ? error.message : 'unknown listener error';
-        this.Logger.error(
-          `Wallet event listener failed for wallet ${event.wallet}: ${errMessage}`,
-        );
-      }
-    }
-  };
 
 }
