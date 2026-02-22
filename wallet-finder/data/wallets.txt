@@ -1,0 +1,4 @@
+# wallets to score, one per line
+0xc5fDDe670e647823dBF07a09C452fe3F33Df8677 # my dev wallet
+0xc5fdde670e647823dbf07a09c452fe3f33df8677
+0x....
