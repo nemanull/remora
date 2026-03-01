@@ -3,7 +3,7 @@ import type {
   HyperliquidSubscriptionMessage,
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsUserFillsEvent,
-} from "@copy-quant/sdk";
+} from "@remora/sdk";
 import WebSocket from "ws";
 
 export type WalletStreamEventType = "userFills" | "clearinghouseState";

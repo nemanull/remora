@@ -4,7 +4,7 @@ import type {
   HyperliquidClearinghouseState,
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsFill,
-} from '@copy-quant/sdk';
+} from '@remora/sdk';
 
 const DUMPS_DIR = join(process.cwd(), 'data', 'dumps');
 

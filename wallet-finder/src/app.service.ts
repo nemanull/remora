@@ -1,5 +1,5 @@
 import { Injectable, Logger } from '@nestjs/common';
-import { validateWallet } from '@copy-quant/sdk';
+import { validateWallet } from '@remora/sdk';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hasDump, loadAccountValue, loadFills } from './scoring/dumps';

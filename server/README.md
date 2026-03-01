@@ -23,7 +23,7 @@
 
 ## Description
 
-Copy-Quant Server — NestJS application with Prisma ORM and PostgreSQL.
+Remora Server — NestJS application with Prisma ORM and PostgreSQL.
 
 ## Project setup
 

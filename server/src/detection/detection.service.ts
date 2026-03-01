@@ -7,7 +7,7 @@ import {
 import type {
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsUserFillsEvent,
-} from '@copy-quant/sdk';
+} from '@remora/sdk';
 import {
   ClusterWalletEvent,
   WsClusterConnection,

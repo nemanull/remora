@@ -1,5 +1,5 @@
 import { Injectable } from '@nestjs/common';
-import { validateWallet } from '@copy-quant/sdk';
+import { validateWallet } from '@remora/sdk';
 import { resolveClusterIdFromEnv } from './dc.tokens';
 
 export interface WalletValidationResult {

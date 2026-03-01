@@ -2,7 +2,7 @@ import { Logger } from '@nestjs/common';
 import type {
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsUserFillsEvent,
-} from '@copy-quant/sdk';
+} from '@remora/sdk';
 import WebSocket from 'ws';
 
 export type ClusterWalletEvent =

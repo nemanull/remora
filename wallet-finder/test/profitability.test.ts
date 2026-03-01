@@ -1,4 +1,4 @@
-import type { HyperliquidWsFill } from '@copy-quant/sdk';
+import type { HyperliquidWsFill } from '@remora/sdk';
 import {
   computeScore,
   computeWalletStats,
