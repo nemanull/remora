@@ -26,10 +26,13 @@ export class WsWalletConnectionEstablishmentService {
   );
   private readonly wsUrl = "wss://api.hyperliquid.xyz/ws";
   private readonly pingIntervalMs = 45_000;
+  private readonly reconnectDelayMs = 5_000;
   private ws: WebSocket;
   private connection: boolean = false;
+  private shouldReconnect: boolean = false;
   private wallet: string;
   private pingTimer?: NodeJS.Timeout;
+  private reconnectTimer?: NodeJS.Timeout;
   private onEvent: (event: WalletStreamEvent) => void;
 
   constructor(wallet: string, onEvent: (event: WalletStreamEvent) => void) {
@@ -45,6 +48,7 @@ export class WsWalletConnectionEstablishmentService {
       return;
     }
 
+    this.shouldReconnect = true;
     this.openConnection();
   }
 
@@ -68,6 +72,10 @@ export class WsWalletConnectionEstablishmentService {
       this.connection = false;
       this.stopPingLoop();
       this.logger.log(`WebSocket closed for wallet ${this.wallet}`);
+
+      if (this.shouldReconnect) {
+        this.scheduleReconnect();
+      }
     });
 
     this.ws.on("error", (err) => {
@@ -84,6 +92,9 @@ export class WsWalletConnectionEstablishmentService {
   }
 
   closeConnection() {
+    this.shouldReconnect = false;
+    this.clearReconnectTimer();
+
     if (!this.connection) {
       this.logger.log(`WebSocket already closed for wallet ${this.wallet}`);
       return;
@@ -167,6 +178,24 @@ export class WsWalletConnectionEstablishmentService {
     }
   }
 
+  private scheduleReconnect() {
+    this.clearReconnectTimer();
+    this.logger.log(
+      `Reconnecting wallet ${this.wallet} in ${this.reconnectDelayMs} ms`,
+    );
+    this.reconnectTimer = setTimeout(() => {
+      this.reconnectTimer = undefined;
+      this.openConnection();
+    }, this.reconnectDelayMs);
+  }
+
+  private clearReconnectTimer() {
+    if (this.reconnectTimer) {
+      clearTimeout(this.reconnectTimer);
+      this.reconnectTimer = undefined;
+    }
+  }
+
   private handleTrackedEvent(rawMessage: string): void {
     let parsedMessage: unknown;
 
@@ -187,6 +216,10 @@ export class WsWalletConnectionEstablishmentService {
     }
 
     const channel = (parsedMessage as { channel?: string }).channel;
+    if (channel === "pong" || channel === "subscriptionResponse") {
+      return;
+    }
+
     if (channel === "userFills") {
       this.onEvent({
         wallet: this.wallet,
@@ -203,6 +236,9 @@ export class WsWalletConnectionEstablishmentService {
         type: "clearinghouseState",
         payload: parsedMessage as HyperliquidWsClearinghouseStateEvent,
       });
+      return;
     }
+
+    this.logger.warn(`Unhandled channel ${channel} for wallet ${this.wallet}`);
   }
 }
