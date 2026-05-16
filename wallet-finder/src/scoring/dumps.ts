@@ -36,8 +36,12 @@ export function loadFills(wallet: string): HyperliquidWsFill[] {
     readFileSync(fillsPath(wallet), 'utf8'),
   ) as FillsFrame[];
 
-  // TODO: dedupe by tid, snapshot and live fills overlap
-  return frames.flatMap((frame) => frame.data.fills);
+  const fillsByTid = new Map<number, HyperliquidWsFill>();
+  for (const fill of frames.flatMap((frame) => frame.data.fills)) {
+    fillsByTid.set(fill.tid, fill);
+  }
+
+  return [...fillsByTid.values()];
 }
 
 export function loadAccountValue(wallet: string): number | null {

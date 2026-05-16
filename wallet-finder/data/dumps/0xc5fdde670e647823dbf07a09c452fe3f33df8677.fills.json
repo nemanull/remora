@@ -432,53 +432,5 @@
         }
       ]
     }
-  },
-  {
-    "channel": "user",
-    "data": {
-      "fills": [
-        {
-          "coin": "XRP",
-          "px": "1.4235",
-          "sz": "8.0",
-          "side": "A",
-          "time": 1770528003858,
-          "startPosition": "0.0",
-          "dir": "Open Short",
-          "closedPnl": "0.0",
-          "hash": "0x94d82f9ad7b7a30e96510434e533d1020536008072bac1e038a0daed96bb7cf9",
-          "oid": 315473807092,
-          "crossed": true,
-          "fee": "0.004919",
-          "tid": 1027996943896038,
-          "feeToken": "USDC",
-          "twapId": null
-        }
-      ]
-    }
-  },
-  {
-    "channel": "user",
-    "data": {
-      "fills": [
-        {
-          "coin": "XRP",
-          "px": "1.4227",
-          "sz": "8.0",
-          "side": "B",
-          "time": 1770528050981,
-          "startPosition": "-8.0",
-          "dir": "Close Short",
-          "closedPnl": "0.0064",
-          "hash": "0x8358b6e39eb67bf884d20434e5361e01e500cec939b99aca272162365dba55e3",
-          "oid": 315474142460,
-          "crossed": true,
-          "fee": "0.004916",
-          "tid": 640811005847129,
-          "feeToken": "USDC",
-          "twapId": null
-        }
-      ]
-    }
   }
 ]
