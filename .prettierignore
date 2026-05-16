@@ -1,0 +1,4 @@
+payloads/
+pnpm-lock.yaml
+**/generated/
+*.md

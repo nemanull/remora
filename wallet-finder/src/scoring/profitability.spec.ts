@@ -1,9 +1,6 @@
 import type { HyperliquidWsFill } from '@remora/sdk';
-import {
-  computeScore,
-  computeWalletStats,
-  rankByScore,
-} from '../src/scoring/profitability';
+import { describe, expect, it } from 'vitest';
+import { computeScore, computeWalletStats, rankByScore } from './profitability';
 
 function makeFill(
   dir: string,

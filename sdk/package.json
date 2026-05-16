@@ -28,10 +28,16 @@
   "types": "./dist/index.d.ts",
   "scripts": {
     "clean": "rm -rf dist",
-    "build": "pnpm run clean && tsc -p tsconfig.json",
-    "dev": "tsc -p tsconfig.json -w"
+    "build": "tsc -b tsconfig.build.json",
+    "dev": "tsc -b tsconfig.build.json -w",
+    "lint": "eslint \"src/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run"
   },
   "devDependencies": {
-    "typescript": "^5.7.3"
+    "@types/node": "24.12.4",
+    "@vitest/coverage-v8": "4.1.6",
+    "typescript": "5.9.3",
+    "vitest": "4.1.6"
   }
 }
