@@ -1,5 +1,6 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { validateWallet } from '@remora/sdk';
+import { Decimal } from 'decimal.js';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { hasDump, loadAccountValue, loadFills } from './scoring/dumps';
@@ -66,7 +67,7 @@ export class AppService {
 
   private computeStats(wallet: string): WalletStats {
     const fills = loadFills(wallet);
-    const accountValue = loadAccountValue(wallet) ?? 0;
+    const accountValue = loadAccountValue(wallet) ?? new Decimal(0);
 
     return computeWalletStats(wallet, fills, accountValue);
   }

@@ -5,6 +5,7 @@ import type {
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsFill,
 } from '@remora/sdk';
+import { Decimal } from 'decimal.js';
 
 const DUMPS_DIR = join(process.cwd(), 'data', 'dumps');
 
@@ -44,7 +45,7 @@ export function loadFills(wallet: string): HyperliquidWsFill[] {
   return [...fillsByTid.values()];
 }
 
-export function loadAccountValue(wallet: string): number | null {
+export function loadAccountValue(wallet: string): Decimal | null {
   if (!existsSync(statePath(wallet))) {
     return null;
   }
@@ -52,5 +53,5 @@ export function loadAccountValue(wallet: string): number | null {
   const dump = JSON.parse(readFileSync(statePath(wallet), 'utf8')) as StateDump;
   const state = 'channel' in dump ? dump.data.clearinghouseState : dump;
 
-  return parseFloat(state.marginSummary.accountValue);
+  return new Decimal(state.marginSummary.accountValue);
 }

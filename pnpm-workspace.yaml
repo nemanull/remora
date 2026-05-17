@@ -9,4 +9,10 @@ resolutionMode: time-based
 onlyBuiltDependencies:
   - '@nestjs/core'
   - '@prisma/engines'
+  - msgpackr-extract
   - prisma
+
+ignoredBuiltDependencies:
+  - cpu-features
+  - protobufjs
+  - ssh2

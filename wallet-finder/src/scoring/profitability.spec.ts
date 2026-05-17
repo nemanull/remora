@@ -1,4 +1,5 @@
 import type { HyperliquidWsFill } from '@remora/sdk';
+import { Decimal } from 'decimal.js';
 import { describe, expect, it } from 'vitest';
 import { computeScore, computeWalletStats, rankByScore } from './profitability';
 
@@ -35,33 +36,47 @@ describe('profitability', () => {
         makeFill('Open Short', '0.0', '0.01'),
         makeFill('Close Short', '-1.0', '0.01'),
       ],
-      100,
+      new Decimal(100),
     );
 
     expect(stats.fills).toBe(4);
     expect(stats.closes).toBe(2);
     expect(stats.wins).toBe(1);
     expect(stats.winRate).toBe(0.5);
-    expect(stats.netPnl).toBeCloseTo(0.96);
-    expect(stats.roi).toBeCloseTo(0.0096);
-    expect(stats.volume).toBeCloseTo(60);
+    expect(stats.netPnl.toString()).toBe('0.96');
+    expect(stats.roi.toString()).toBe('0.0096');
+    expect(stats.volume.toString()).toBe('60');
   });
 
   it('gives zero roi without account value', () => {
     const stats = computeWalletStats(
       '0xabc',
       [makeFill('Close Long', '2.0', '0.01')],
-      0,
+      new Decimal(0),
     );
 
-    expect(stats.roi).toBe(0);
+    expect(stats.roi.isZero()).toBe(true);
+  });
+
+  it('adds fees without float error', () => {
+    const stats = computeWalletStats(
+      '0xabc',
+      [
+        makeFill('Open Long', '0.0', '0.1'),
+        makeFill('Close Long', '1.0', '0.2'),
+      ],
+      new Decimal(100),
+    );
+
+    expect(stats.fees.toString()).toBe('0.3');
+    expect(stats.netPnl.toString()).toBe('0.7');
   });
 
   it('keeps the score between 0 and 1', () => {
     const stats = computeWalletStats(
       '0xabc',
       [makeFill('Close Long', '500.0', '0.01')],
-      100,
+      new Decimal(100),
     );
 
     expect(computeScore(stats)).toBeLessThanOrEqual(1);
@@ -72,12 +87,12 @@ describe('profitability', () => {
     const winner = computeWalletStats(
       '0xaaa',
       [makeFill('Close Long', '2.0', '0.01')],
-      100,
+      new Decimal(100),
     );
     const loser = computeWalletStats(
       '0xbbb',
       [makeFill('Close Long', '-2.0', '0.01')],
-      100,
+      new Decimal(100),
     );
 
     const ranked = rankByScore([loser, winner]);
