@@ -1,33 +1,18 @@
-import {
-  Injectable,
-  Logger,
-  OnModuleDestroy,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, Logger, OnModuleInit } from '@nestjs/common';
 import type {
   HyperliquidWsClearinghouseStateEvent,
   HyperliquidWsUserFillsEvent,
 } from '@remora/sdk';
-import {
-  ClusterWalletEvent,
-  WsClusterConnection,
-} from './ws/wsClusterConnection';
+import { ClusterSocket, ClusterWalletEvent } from './clusterSocket';
 
 @Injectable()
-export class DetectionService implements OnModuleInit, OnModuleDestroy {
+export class DetectionService implements OnModuleInit {
   private readonly logger = new Logger(DetectionService.name);
-  private readonly clusterUrl = 'ws://127.0.0.1:4444/ws';
-  private clusterConnection?: WsClusterConnection;
+
+  constructor(private readonly clusterSocket: ClusterSocket) {}
 
   onModuleInit() {
-    this.clusterConnection = new WsClusterConnection(this.clusterUrl, (event) =>
-      this.handleWalletEvent(event),
-    );
-    this.clusterConnection.connect();
-  }
-
-  onModuleDestroy() {
-    this.clusterConnection?.disconnect();
+    this.clusterSocket.onWalletEvent((event) => this.handleWalletEvent(event));
   }
 
   private handleWalletEvent(event: ClusterWalletEvent): void {
@@ -55,7 +40,7 @@ export class DetectionService implements OnModuleInit, OnModuleDestroy {
     payload: HyperliquidWsClearinghouseStateEvent,
   ): void {
     const { accountValue } = payload.data.clearinghouseState.marginSummary;
-    // TODO: save balance snapshots when prisma works
+    // TODO: save balance snapshots
     this.logger.log(`Account value of wallet ${wallet} is ${accountValue}`);
   }
 }

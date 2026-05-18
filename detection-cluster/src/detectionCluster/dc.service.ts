@@ -1,6 +1,7 @@
 import { Injectable, Logger, OnModuleDestroy } from '@nestjs/common';
 import { resolveClusterIdFromEnv } from './dc.tokens';
 import { WsBroadcastManager } from './ws/wsBroadcastManager';
+import { WsCoreClient } from './ws/wsCoreClient';
 import { WsWalletConnectionEstablishmentService } from './ws/wsWalletConnectionEstablishment';
 
 @Injectable()
@@ -12,7 +13,10 @@ export class DetectionClusterService implements OnModuleDestroy {
     WsWalletConnectionEstablishmentService
   >();
 
-  constructor(private readonly wsBroadcastManager: WsBroadcastManager) {}
+  constructor(
+    private readonly wsBroadcastManager: WsBroadcastManager,
+    private readonly wsCoreClient: WsCoreClient,
+  ) {}
 
   async startDetectionForAllWallets(wallets: string[]) {
     this.logger.log(
@@ -29,6 +33,7 @@ export class DetectionClusterService implements OnModuleDestroy {
       const walletConnection = new WsWalletConnectionEstablishmentService(wallet, (event) => {
         try {
           this.wsBroadcastManager.broadcastWalletEvent(event);
+          this.wsCoreClient.sendWalletEvent(event);
         } catch (error) {
           this.logger.error(
             `Failed to broadcast ${event.type} event for wallet ${wallet}`,

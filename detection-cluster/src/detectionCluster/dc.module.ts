@@ -3,6 +3,7 @@ import { DetectionClusterController } from './dc.controller';
 import { DetectionClusterService } from './dc.service';
 import { WalletValidationService } from './walletValidator';
 import { WsBroadcastManager } from './ws/wsBroadcastManager';
+import { WsCoreClient } from './ws/wsCoreClient';
 
 @Module({
   controllers: [DetectionClusterController],
@@ -10,6 +11,7 @@ import { WsBroadcastManager } from './ws/wsBroadcastManager';
     DetectionClusterService,
     WalletValidationService,
     WsBroadcastManager,
+    WsCoreClient,
   ],
   exports: [DetectionClusterService],
 })
