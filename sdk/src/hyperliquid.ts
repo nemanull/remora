@@ -1,40 +1,260 @@
-import type { Decimal } from "./types.js";
+import type { Decimal } from './types.js';
 
-export type HyperliquidSubscriptionMethod = "subscribe" | "unsubscribe";
-export type HyperliquidTrackedSubscriptionType =
-  | "userFills"
-  | "clearinghouseState";
+export type DecimalString = string;
 
-export type HyperliquidTrackedSubscription =
+export type HyperliquidNetwork = 'mainnet' | 'testnet';
+
+export const HYPERLIQUID_URLS = {
+  mainnet: {
+    apiUrl: 'https://api.hyperliquid.xyz',
+    wsUrl: 'wss://api.hyperliquid.xyz/ws',
+  },
+  testnet: {
+    apiUrl: 'https://api.hyperliquid-testnet.xyz',
+    wsUrl: 'wss://api.hyperliquid-testnet.xyz/ws',
+  },
+} as const satisfies Record<
+  HyperliquidNetwork,
+  { apiUrl: string; wsUrl: string }
+>;
+
+export type HyperliquidSubscriptionMethod = 'subscribe' | 'unsubscribe';
+
+export type HyperliquidSubscription =
   | {
-      type: "userFills";
+      type: 'userFills';
       user: string;
       aggregateByTime?: boolean;
     }
   | {
-      type: "clearinghouseState";
+      type: 'clearinghouseState';
       user: string;
+      dex?: string;
+    }
+  | {
+      type: 'allMids';
       dex?: string;
     };
 
 export type HyperliquidSubscriptionMessage = {
   method: HyperliquidSubscriptionMethod;
-  subscription: HyperliquidTrackedSubscription;
+  subscription: HyperliquidSubscription;
 };
 
-export type HyperliquidWsFillSide = "A" | "B";
-export type HyperliquidWsFillDirection =
-  | "Open Long"
-  | "Close Long"
-  | "Open Short"
-  | "Close Short"
-  | string;
+export type HyperliquidPingMessage = { method: 'ping' };
+
+export type HyperliquidFillSide = 'A' | 'B';
 
 export type HyperliquidFillLiquidation = {
   liquidatedUser?: string;
-  markPx: number;
-  method: "market" | "backstop";
+  markPx: DecimalString | number;
+  method: 'market' | 'backstop';
 };
+
+export type HyperliquidFill = {
+  coin: string;
+  px: DecimalString;
+  sz: DecimalString;
+  side: HyperliquidFillSide;
+  time: number;
+  startPosition: DecimalString;
+  dir: string;
+  closedPnl: DecimalString;
+  hash: string;
+  oid: number;
+  crossed: boolean;
+  fee: DecimalString;
+  tid: number;
+  feeToken: string;
+  twapId: number | null;
+  cloid?: string;
+  builderFee?: DecimalString;
+  liquidation?: HyperliquidFillLiquidation;
+};
+
+export type HyperliquidUserFillsData = {
+  isSnapshot?: true;
+  user: string;
+  fills: HyperliquidFill[];
+};
+
+export type HyperliquidMarginSummary = {
+  accountValue: DecimalString;
+  totalNtlPos: DecimalString;
+  totalRawUsd: DecimalString;
+  totalMarginUsed: DecimalString;
+};
+
+export type HyperliquidLeverage = {
+  type: 'cross' | 'isolated';
+  value: number;
+  rawUsd?: DecimalString;
+};
+
+export type HyperliquidCumulativeFunding = {
+  allTime: DecimalString;
+  sinceOpen: DecimalString;
+  sinceChange: DecimalString;
+};
+
+export type HyperliquidPosition = {
+  coin: string;
+  szi: DecimalString;
+  leverage: HyperliquidLeverage;
+  entryPx: DecimalString;
+  positionValue: DecimalString;
+  unrealizedPnl: DecimalString;
+  returnOnEquity: DecimalString;
+  liquidationPx: DecimalString | null;
+  marginUsed: DecimalString;
+  maxLeverage: number;
+  cumFunding: HyperliquidCumulativeFunding;
+};
+
+export type HyperliquidAssetPosition = {
+  type: 'oneWay';
+  position: HyperliquidPosition;
+};
+
+export type HyperliquidClearinghouseState = {
+  marginSummary: HyperliquidMarginSummary;
+  crossMarginSummary: HyperliquidMarginSummary;
+  crossMaintenanceMarginUsed: DecimalString;
+  withdrawable: DecimalString;
+  assetPositions: HyperliquidAssetPosition[];
+  time: number;
+};
+
+export type HyperliquidClearinghouseStateData = {
+  dex: string;
+  user: string;
+  clearinghouseState: HyperliquidClearinghouseState;
+};
+
+export type HyperliquidAllMidsData = {
+  mids: Record<string, DecimalString>;
+};
+
+export type HyperliquidUserFillsFrame = {
+  channel: 'userFills';
+  data: HyperliquidUserFillsData;
+};
+
+export type HyperliquidClearinghouseStateFrame = {
+  channel: 'clearinghouseState';
+  data: HyperliquidClearinghouseStateData;
+};
+
+export type HyperliquidAllMidsFrame = {
+  channel: 'allMids';
+  data: HyperliquidAllMidsData;
+};
+
+export type HyperliquidSubscriptionResponseFrame = {
+  channel: 'subscriptionResponse';
+  data: HyperliquidSubscriptionMessage;
+};
+
+export type HyperliquidErrorFrame = {
+  channel: 'error';
+  data: string;
+};
+
+export type HyperliquidPongFrame = {
+  channel: 'pong';
+};
+
+export type HyperliquidWsFrame = {
+  channel: string;
+  data?: unknown;
+};
+
+export type PortfolioWindow =
+  | 'day'
+  | 'week'
+  | 'month'
+  | 'allTime'
+  | 'perpDay'
+  | 'perpWeek'
+  | 'perpMonth'
+  | 'perpAllTime';
+
+export type PortfolioHistoryPoint = [time: number, value: DecimalString];
+
+export type PortfolioPeriod = {
+  accountValueHistory: PortfolioHistoryPoint[];
+  pnlHistory: PortfolioHistoryPoint[];
+  vlm: DecimalString;
+};
+
+export type PortfolioResponse = [PortfolioWindow, PortfolioPeriod][];
+
+export type L2BookLevel = {
+  px: DecimalString;
+  sz: DecimalString;
+  n: number;
+};
+
+export type L2BookResponse = {
+  coin: string;
+  time: number;
+  levels: [bids: L2BookLevel[], asks: L2BookLevel[]];
+};
+
+export type PerpMarginMode = 'strictIsolated' | 'noCross';
+
+export type PerpAsset = {
+  name: string;
+  szDecimals: number;
+  maxLeverage: number;
+  marginTableId?: number;
+  onlyIsolated?: boolean;
+  isDelisted?: boolean;
+  marginMode?: PerpMarginMode;
+};
+
+export type PerpMeta = {
+  universe: PerpAsset[];
+};
+
+export type PerpAssetContext = {
+  funding: DecimalString;
+  openInterest: DecimalString;
+  prevDayPx: DecimalString;
+  dayNtlVlm: DecimalString;
+  premium: DecimalString | null;
+  oraclePx: DecimalString;
+  markPx: DecimalString;
+  midPx: DecimalString | null;
+  impactPxs: DecimalString[] | null;
+  dayBaseVlm: DecimalString;
+};
+
+export type MetaAndAssetCtxs = [meta: PerpMeta, contexts: PerpAssetContext[]];
+
+export type HyperliquidTrackedSubscriptionType =
+  | 'userFills'
+  | 'clearinghouseState';
+
+export type HyperliquidTrackedSubscription =
+  | {
+      type: 'userFills';
+      user: string;
+      aggregateByTime?: boolean;
+    }
+  | {
+      type: 'clearinghouseState';
+      user: string;
+      dex?: string;
+    };
+
+export type HyperliquidWsFillSide = 'A' | 'B';
+export type HyperliquidWsFillDirection =
+  | 'Open Long'
+  | 'Close Long'
+  | 'Open Short'
+  | 'Close Short'
+  | string;
 
 export type HyperliquidWsFill = {
   coin: string;
@@ -63,52 +283,14 @@ export type HyperliquidWsUserFillsData = {
 };
 
 export type HyperliquidWsUserFillsEvent = {
-  channel: "userFills";
+  channel: 'userFills';
   data: HyperliquidWsUserFillsData;
-};
-
-export type HyperliquidMarginSummary = {
-  accountValue: Decimal;
-  totalNtlPos: Decimal;
-  totalRawUsd: Decimal;
-  totalMarginUsed: Decimal;
 };
 
 export type HyperliquidCumFunding = {
   allTime: Decimal;
   sinceOpen: Decimal;
   sinceChange: Decimal;
-};
-
-export type HyperliquidLeverage = {
-  type: "cross" | "isolated" | string;
-  value: number;
-};
-
-export type HyperliquidAssetPosition = {
-  type: "oneWay" | string;
-  position: {
-    coin: string;
-    szi: Decimal;
-    leverage: HyperliquidLeverage;
-    entryPx: Decimal;
-    positionValue: Decimal;
-    unrealizedPnl: Decimal;
-    returnOnEquity: Decimal;
-    liquidationPx: Decimal;
-    marginUsed: Decimal;
-    maxLeverage: number;
-    cumFunding: HyperliquidCumFunding;
-  };
-};
-
-export type HyperliquidClearinghouseState = {
-  marginSummary: HyperliquidMarginSummary;
-  crossMarginSummary: HyperliquidMarginSummary;
-  crossMaintenanceMarginUsed: Decimal;
-  withdrawable: Decimal;
-  assetPositions: HyperliquidAssetPosition[];
-  time: number;
 };
 
 export type HyperliquidWsClearinghouseStateData = {
@@ -118,7 +300,7 @@ export type HyperliquidWsClearinghouseStateData = {
 };
 
 export type HyperliquidWsClearinghouseStateEvent = {
-  channel: "clearinghouseState";
+  channel: 'clearinghouseState';
   data: HyperliquidWsClearinghouseStateData;
 };
 

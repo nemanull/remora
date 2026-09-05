@@ -12,16 +12,6 @@
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
       "default": "./dist/index.js"
-    },
-    "./types": {
-      "types": "./dist/types.d.ts",
-      "import": "./dist/types.js",
-      "default": "./dist/types.js"
-    },
-    "./hyperliquid": {
-      "types": "./dist/hyperliquid.d.ts",
-      "import": "./dist/hyperliquid.js",
-      "default": "./dist/hyperliquid.js"
     }
   },
   "main": "./dist/index.js",
@@ -34,8 +24,12 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run"
   },
+  "dependencies": {
+    "ws": "8.20.1"
+  },
   "devDependencies": {
     "@types/node": "24.12.4",
+    "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "4.1.6",
     "typescript": "5.9.3",
     "vitest": "4.1.6"
