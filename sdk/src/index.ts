@@ -1,4 +1,5 @@
 export * from './address.js';
+export * from './clusterProtocol.js';
 export * from './hyperliquid.js';
 export * from './hyperliquidSocket.js';
 export * from './infoClient.js';

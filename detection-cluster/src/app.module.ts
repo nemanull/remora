@@ -1,7 +1,14 @@
 import { Module } from '@nestjs/common';
-import { DetectionClusterModule } from './detectionCluster/dc.module';
+import { ConfigModule } from '@nestjs/config';
+import { validateCollectorConfig } from './config';
+import { HealthController } from './health.controller';
+import { WatchlistService } from './watchlist.service';
 
 @Module({
-  imports: [DetectionClusterModule],
+  imports: [
+    ConfigModule.forRoot({ isGlobal: true, validate: validateCollectorConfig }),
+  ],
+  controllers: [HealthController],
+  providers: [WatchlistService],
 })
 export class AppModule {}
