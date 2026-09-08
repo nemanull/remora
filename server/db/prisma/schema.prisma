@@ -8,134 +8,35 @@ datasource db {
   provider = "postgresql"
 }
 
-
-enum PositionType {
-  LONG
-  SHORT
+enum WalletStatus {
+  CANDIDATE
+  SHADOW
+  LIVE
+  RETIRED
 }
 
-enum LeverageMode {
-  CROSS
-  ISOLATED
-}
-
-enum PositionStatus {
-  OPENING
-  OPEN
-  CLOSING
-  CLOSED
-  LIQUIDATED
-  ERROR
+enum WalletSource {
+  LEADERBOARD
+  MANUAL
 }
 
 model Wallet {
-  walletId String @id @map("wallet_id") // e.g. `${address}:${exchange}`
-  address  String
+  address          String       @id
+  status           WalletStatus @default(CANDIDATE)
+  source           WalletSource
+  score            Float?
+  scoredAt         DateTime?    @map("scored_at") @db.Timestamptz(3)
+  topStreak        Int          @default(0) @map("top_streak")
+  missStreak       Int          @default(0) @map("miss_streak")
+  isPaused         Boolean      @default(false) @map("is_paused")
+  statusReason     String?      @map("status_reason")
+  trackedSince     DateTime?    @map("tracked_since") @db.Timestamptz(3)
+  fillsSyncedUntil DateTime?    @map("fills_synced_until") @db.Timestamptz(3)
+  liveSince        DateTime?    @map("live_since") @db.Timestamptz(3)
+  retiredAt        DateTime?    @map("retired_at") @db.Timestamptz(3)
+  clusterId        Int?         @map("cluster_id")
+  createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
+  updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
-  profitabilityScore Decimal @map("profitability_score") // 0.0000 to 1.0000, higher is more profitable
-
-  firstTimestamp DateTime @map("first_timestamp")
-  lastTimestamp  DateTime @map("last_timestamp")
-
-  balanceSnapshots BalanceSnapshot[]
-  positions        WalletPosition[]
-
-  isPersonal Boolean @default(false) @map("is_personal")
-
-  @@index([address])
-}
-
-model BalanceSnapshot {
-  snapshotId String @id @map("snapshot_id") // `${address}:${exchange}:${timestamp_ms}`
-
-  walletId String @map("wallet_id")
-  wallet   Wallet  @relation(fields: [walletId], references: [walletId], onDelete: Cascade)
-
-  // margin_summary (flattened)
-  marginAccountValue    Decimal @map("margin_account_value")
-  marginTotalNtlPos     Decimal @map("margin_total_ntl_pos")
-  marginTotalRawUsd     Decimal @map("margin_total_raw_usd")
-  marginTotalMarginUsed Decimal @map("margin_total_margin_used")
-
-  // cross_margin_summary (flattened)
-  crossAccountValue    Decimal @map("cross_account_value")
-  crossTotalNtlPos     Decimal @map("cross_total_ntl_pos")
-  crossTotalRawUsd     Decimal @map("cross_total_raw_usd")
-  crossTotalMarginUsed Decimal @map("cross_total_margin_used")
-
-  crossMaintenanceMarginUsedUsd Decimal @map("cross_maintenance_margin_used_usd")
-  withdrawableUsd              Decimal @map("withdrawable_usd")
-
-  timestamp DateTime
-
-  @@index([walletId, timestamp])
-}
-
-model WalletPosition {
-  positionId String @id @map("position_id") // `${address}:${market}:${opened_at_ms}`
-
-  walletId String @map("wallet_id")
-  wallet   Wallet  @relation(fields: [walletId], references: [walletId], onDelete: Cascade)
-
-  hash    String // from userEvents
-  address String
-  market  String
-
-  directionType               PositionType @map("direction_type")
-  platformSpecificPositionType String       @map("platform_specific_position_type") // oneWay/hedge
-
-  leverageMode  LeverageMode @map("leverage_mode")
-  leverageValue Decimal      @map("leverage_value")
-  leverageMax   Decimal?     @map("leverage_max")
-
-  openFeesUsd  Decimal  @map("open_fees_usd")
-  closeFeesUsd Decimal? @map("close_fees_usd")
-  feeToken     String  @map("fee_token")
-
-  openedAt      DateTime  @map("opened_at")
-  closedAt      DateTime? @map("closed_at")
-
-  status PositionStatus
-
-  // self-relation: personal position → tracked position it was copied from
-  copiedFromId String?         @unique @map("copied_from_id")
-  copiedFrom   WalletPosition? @relation("CopyLink", fields: [copiedFromId], references: [positionId], onDelete: SetNull)
-  copiedBy     WalletPosition? @relation("CopyLink")
-
-  metrics PositionMetrics?
-  internalMetrics PositionInternalMetrics?
-
-  @@index([walletId, status])
-  @@index([market])
-  @@index([address])
-  @@index([hash])
-  @@index([copiedFromId])
-}
-
-model PositionInternalMetrics {
-  // 1:1 via shared primary key
-  positionId String         @id @map("position_id")
-  position   WalletPosition @relation(fields: [positionId], references: [positionId], onDelete: Cascade)
-
-  positionReasonabilityScore Decimal? @map("position_reasonability_score")
-  description String?
-}
-
-model PositionMetrics {
-  // 1:1 via shared primary key
-  positionId String        @id @map("position_id")
-  position   WalletPosition @relation(fields: [positionId], references: [positionId], onDelete: Cascade)
-
-  assetSize        Decimal @map("asset_size")
-  positionValueUsd Decimal @map("position_value_usd")
-
-  entryAssetPriceUsd       Decimal @map("entry_asset_price_usd")
-  liquidationAssetPriceUsd Decimal @map("liquidation_asset_price_usd")
-
-  unrealizedPnlUsd       Decimal @map("unrealized_pnl_usd")
-  realizedPnlUsd         Decimal @map("realized_pnl_usd")
-  positionRoiPercentage  Decimal @map("position_roi_percentage")
-
-  timestamp DateTime @map("timestamp")
-
+  @@index([status])
 }

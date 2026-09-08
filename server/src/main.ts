@@ -1,11 +1,16 @@
-import { config } from 'dotenv';
+import { ConfigService } from '@nestjs/config';
 import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module';
+import type { ServerConfig } from './config';
 
-config();
-
-async function bootstrap() {
+async function bootstrap(): Promise<void> {
   const app = await NestFactory.create(AppModule);
-  await app.listen(process.env.PORT ?? 3000);
+  app.enableShutdownHooks();
+  const config = app.get<ConfigService<ServerConfig, true>>(ConfigService);
+  await app.listen(
+    config.getOrThrow('PORT', { infer: true }),
+    config.getOrThrow('HOST', { infer: true }),
+  );
 }
-bootstrap();
+
+void bootstrap();

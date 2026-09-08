@@ -3,6 +3,11 @@
   "version": "0.0.1",
   "private": true,
   "license": "UNLICENSED",
+  "files": [
+    "dist",
+    "db/prisma",
+    "prisma.config.ts"
+  ],
   "scripts": {
     "prebuild": "pnpm --filter @remora/sdk build && prisma generate",
     "build": "nest build",
@@ -18,7 +23,7 @@
     "prisma:migrateDeploy": "prisma migrate deploy",
     "prisma:migrateStatus": "prisma migrate status",
     "prisma:newMigration": "prisma migrate dev",
-    "prisma:migrateReset": "prisma migrate dev --create-only",
+    "prisma:migrateReset": "prisma migrate reset",
     "prisma:studio": "prisma studio",
     "prisma:validate": "prisma validate",
     "prisma:format": "prisma format"
@@ -26,14 +31,19 @@
   "dependencies": {
     "@remora/sdk": "workspace:*",
     "@nestjs/common": "11.1.21",
+    "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.21",
     "@nestjs/platform-express": "11.1.21",
     "@prisma/adapter-pg": "7.8.0",
     "@prisma/client": "7.8.0",
+    "decimal.js": "10.6.0",
     "dotenv": "17.4.2",
+    "prisma": "7.8.0",
+    "prom-client": "15.1.3",
     "reflect-metadata": "0.2.2",
     "rxjs": "7.8.2",
-    "ws": "8.20.1"
+    "ws": "8.20.1",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.21",
@@ -43,7 +53,6 @@
     "@types/node": "24.12.4",
     "@types/ws": "8.18.1",
     "@vitest/coverage-v8": "4.1.6",
-    "prisma": "7.8.0",
     "typescript": "5.9.3",
     "vitest": "4.1.6"
   }
