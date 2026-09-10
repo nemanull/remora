@@ -15,6 +15,19 @@ describe('validateServerConfig', () => {
       HYPERLIQUID_WS_URL: 'wss://api.hyperliquid.xyz/ws',
       HYPERLIQUID_API_URL: 'https://api.hyperliquid.xyz',
       HYPERLIQUID_WEIGHT_PER_MINUTE: 400,
+      LIVE_ALLOCATION_USD: 5_000,
+      SHADOW_ALLOCATION_USD: 5_000,
+      SIGNAL_MAX_AGE_MS: 15_000,
+      DRIFT_LIMIT_MAJOR_BPS: 50,
+      DRIFT_LIMIT_OTHER_BPS: 100,
+      EXIT_SLIPPAGE_BPS: 300,
+      LEADER_EQUITY_MAX_AGE_MS: 900_000,
+      POSITION_CAP_MULTIPLE: 3,
+      GROSS_EXPOSURE_MULTIPLE: 3,
+      MAX_OPEN_COPIES: 12,
+      MARGIN_BUFFER: 1.2,
+      DAILY_LOSS_LIMIT: 0.05,
+      MAX_EXCHANGE_LEVERAGE: 5,
     });
   });
 
@@ -66,6 +79,8 @@ describe('validateServerConfig', () => {
 
   it.each([
     ['a missing database URL', { DATABASE_URL: undefined }, /DATABASE_URL/],
+    ['a daily loss limit of 1', { DAILY_LOSS_LIMIT: '1' }, /DAILY_LOSS_LIMIT/],
+    ['a margin buffer below 1', { MARGIN_BUFFER: '0.9' }, /MARGIN_BUFFER/],
   ])('fails the boot on %s', (_, overrides, pattern) => {
     expect(() => validateServerConfig({ ...REQUIRED, ...overrides })).toThrow(
       pattern,
