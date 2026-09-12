@@ -20,6 +20,11 @@ enum WalletSource {
   MANUAL
 }
 
+enum Book {
+  MAIN
+  SHADOW
+}
+
 model Wallet {
   address          String       @id
   status           WalletStatus @default(CANDIDATE)
@@ -38,5 +43,43 @@ model Wallet {
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  positions CopyPosition[]
+
   @@index([status])
+}
+
+model CopyPosition {
+  id               BigInt    @id @default(autoincrement())
+  book             Book
+  walletAddress    String    @map("wallet_address")
+  coin             String
+  size             Decimal   @db.Decimal(30, 10)
+  entryPx          Decimal?  @map("entry_px") @db.Decimal(30, 10)
+  ratio            Decimal   @db.Decimal(30, 18)
+  leaderSizeAtSync Decimal   @map("leader_size_at_sync") @db.Decimal(30, 10)
+  allocationUsd    Decimal   @map("allocation_usd") @db.Decimal(20, 2)
+  stopPx           Decimal?  @map("stop_px") @db.Decimal(30, 10)
+  isOpen           Boolean   @default(true) @map("is_open")
+  openedAt         DateTime  @map("opened_at") @db.Timestamptz(3)
+  lastOrderAt      DateTime? @map("last_order_at") @db.Timestamptz(3)
+  closedAt         DateTime? @map("closed_at") @db.Timestamptz(3)
+  closeReason      String?   @map("close_reason")
+  realizedPnl      Decimal   @default(0) @map("realized_pnl") @db.Decimal(20, 6)
+  feesUsd          Decimal   @default(0) @map("fees_usd") @db.Decimal(20, 6)
+  fundingUsd       Decimal   @default(0) @map("funding_usd") @db.Decimal(20, 6)
+  leaderOpenTid    BigInt    @map("leader_open_tid")
+
+  wallet Wallet  @relation(fields: [walletAddress], references: [address])
+
+  @@index([book, isOpen])
+  @@index([walletAddress, isOpen])
+}
+
+model BookState {
+  book             Book     @id
+  dayStartedAt     DateTime @map("day_started_at") @db.Timestamptz(3)
+  dayStartEquity   Decimal  @map("day_start_equity") @db.Decimal(20, 2)
+  killSwitchActive Boolean  @default(false) @map("kill_switch_active")
+  killSwitchReason String?  @map("kill_switch_reason")
+  updatedAt        DateTime @updatedAt @map("updated_at") @db.Timestamptz(3)
 }

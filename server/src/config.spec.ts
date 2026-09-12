@@ -4,6 +4,11 @@ import { validateServerConfig } from './config';
 const REQUIRED = {
   DATABASE_URL: 'postgresql://remora:remora@127.0.0.1:5432/remora',
 };
+const LIVE = {
+  ...REQUIRED,
+  EXECUTION_MODE: 'live',
+  HYPERLIQUID_ACCOUNT_ADDRESS: '0xC5fDDe670E647823dBf07A09c452FE3F33dF8677',
+};
 
 describe('validateServerConfig', () => {
   it('fills every default of the configuration table', () => {
@@ -11,10 +16,12 @@ describe('validateServerConfig', () => {
       ...REQUIRED,
       HOST: '127.0.0.1',
       PORT: 3000,
+      EXECUTION_MODE: 'paper',
       HYPERLIQUID_NETWORK: 'mainnet',
       HYPERLIQUID_WS_URL: 'wss://api.hyperliquid.xyz/ws',
       HYPERLIQUID_API_URL: 'https://api.hyperliquid.xyz',
       HYPERLIQUID_WEIGHT_PER_MINUTE: 400,
+      PAPER_EQUITY_USD: 25_000,
       LIVE_ALLOCATION_USD: 5_000,
       SHADOW_ALLOCATION_USD: 5_000,
       SIGNAL_MAX_AGE_MS: 15_000,
@@ -57,6 +64,12 @@ describe('validateServerConfig', () => {
     expect(config.HYPERLIQUID_API_URL).toBe('http://hyperliquid-sim:3030');
   });
 
+  it('rejects an account address that is not an address', () => {
+    expect(() =>
+      validateServerConfig({ ...LIVE, HYPERLIQUID_ACCOUNT_ADDRESS: '0x1234' }),
+    ).toThrow(/HYPERLIQUID_ACCOUNT_ADDRESS/);
+  });
+
   it('treats empty variables as unset', () => {
     const config = validateServerConfig({
       ...REQUIRED,
@@ -79,6 +92,7 @@ describe('validateServerConfig', () => {
 
   it.each([
     ['a missing database URL', { DATABASE_URL: undefined }, /DATABASE_URL/],
+    ['an unknown execution mode', { EXECUTION_MODE: 'yolo' }, /EXECUTION_MODE/],
     ['a daily loss limit of 1', { DAILY_LOSS_LIMIT: '1' }, /DAILY_LOSS_LIMIT/],
     ['a margin buffer below 1', { MARGIN_BUFFER: '0.9' }, /MARGIN_BUFFER/],
   ])('fails the boot on %s', (_, overrides, pattern) => {
