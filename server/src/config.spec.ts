@@ -8,6 +8,7 @@ const LIVE = {
   ...REQUIRED,
   EXECUTION_MODE: 'live',
   HYPERLIQUID_ACCOUNT_ADDRESS: '0xC5fDDe670E647823dBf07A09c452FE3F33dF8677',
+  HYPERLIQUID_AGENT_KEY_FILE: '/run/secrets/hyperliquid_agent_key',
 };
 
 describe('validateServerConfig', () => {
@@ -34,7 +35,12 @@ describe('validateServerConfig', () => {
       MAX_OPEN_COPIES: 12,
       MARGIN_BUFFER: 1.2,
       DAILY_LOSS_LIMIT: 0.05,
+      STOP_LOSS_ALLOCATION_SHARE: 0.2,
+      STOP_MAX_DISTANCE: 0.25,
       MAX_EXCHANGE_LEVERAGE: 5,
+      ORDER_EXPIRY_MS: 5_000,
+      PAPER_ORDER_LATENCY_MS: 900,
+      TAKER_FEE_BPS: 4.5,
     });
   });
 
@@ -64,6 +70,12 @@ describe('validateServerConfig', () => {
     expect(config.HYPERLIQUID_API_URL).toBe('http://hyperliquid-sim:3030');
   });
 
+  it('requires the account address and the agent key file in live mode', () => {
+    expect(() =>
+      validateServerConfig({ ...REQUIRED, EXECUTION_MODE: 'live' }),
+    ).toThrow(/HYPERLIQUID_ACCOUNT_ADDRESS[\s\S]*HYPERLIQUID_AGENT_KEY_FILE/);
+  });
+
   it('rejects an account address that is not an address', () => {
     expect(() =>
       validateServerConfig({ ...LIVE, HYPERLIQUID_ACCOUNT_ADDRESS: '0x1234' }),
@@ -83,10 +95,12 @@ describe('validateServerConfig', () => {
     const config = validateServerConfig({
       ...REQUIRED,
       PORT: '3100',
+      TAKER_FEE_BPS: '3.5',
       HYPERLIQUID_WEIGHT_PER_MINUTE: '300',
     });
 
     expect(config.PORT).toBe(3100);
+    expect(config.TAKER_FEE_BPS).toBe(3.5);
     expect(config.HYPERLIQUID_WEIGHT_PER_MINUTE).toBe(300);
   });
 

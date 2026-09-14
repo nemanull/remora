@@ -232,6 +232,81 @@ export type PerpAssetContext = {
 
 export type MetaAndAssetCtxs = [meta: PerpMeta, contexts: PerpAssetContext[]];
 
+export type HyperliquidOrderStatus =
+  | 'open'
+  | 'filled'
+  | 'canceled'
+  | 'triggered'
+  | 'rejected'
+  | 'marginCanceled'
+  | 'vaultWithdrawalCanceled'
+  | 'openInterestCapCanceled'
+  | 'selfTradeCanceled'
+  | 'reduceOnlyCanceled'
+  | 'siblingFilledCanceled'
+  | 'delistedCanceled'
+  | 'liquidatedCanceled'
+  | 'scheduledCancel'
+  | 'tickRejected'
+  | 'minTradeNtlRejected'
+  | 'perpMarginRejected'
+  | 'reduceOnlyRejected'
+  | 'badAloPxRejected'
+  | 'iocCancelRejected'
+  | 'badTriggerPxRejected'
+  | 'marketOrderNoLiquidityRejected'
+  | 'positionIncreaseAtOpenInterestCapRejected'
+  | 'positionFlipAtOpenInterestCapRejected'
+  | 'tooAggressiveAtOpenInterestCapRejected'
+  | 'openInterestIncreaseRejected'
+  | 'insufficientSpotBalanceRejected'
+  | 'oracleRejected'
+  | 'perpMaxPositionRejected';
+
+export type HyperliquidOrder = {
+  coin: string;
+  side: HyperliquidFillSide;
+  limitPx: DecimalString;
+  sz: DecimalString;
+  oid: number;
+  timestamp: number;
+  triggerCondition: string;
+  isTrigger: boolean;
+  triggerPx: DecimalString;
+  children: unknown[];
+  isPositionTpsl: boolean;
+  reduceOnly: boolean;
+  orderType: string;
+  origSz: DecimalString;
+  tif: string | null;
+  cloid: string | null;
+};
+
+export type OrderStatusResponse =
+  | {
+      status: 'order';
+      order: {
+        order: HyperliquidOrder;
+        status: HyperliquidOrderStatus;
+        statusTimestamp: number;
+      };
+    }
+  | { status: 'unknownOid' };
+
+export type UserAbstraction =
+  | 'unifiedAccount'
+  | 'portfolioMargin'
+  | 'disabled'
+  | 'default'
+  | 'dexAbstraction';
+
+export type UserRoleResponse =
+  | { role: 'user' }
+  | { role: 'agent'; data: { user: string } }
+  | { role: 'vault' }
+  | { role: 'subAccount'; data: { master: string } }
+  | { role: 'missing' };
+
 export type HyperliquidTrackedSubscriptionType =
   | 'userFills'
   | 'clearinghouseState';

@@ -3,12 +3,16 @@ import type {
   HyperliquidFill,
   L2BookResponse,
   MetaAndAssetCtxs,
+  OrderStatusResponse,
   PortfolioResponse,
+  UserAbstraction,
+  UserRoleResponse,
 } from './hyperliquid.js';
 import type { WeightBudget } from './weightBudget.js';
 
 const LIGHT_WEIGHT = 2;
 const STANDARD_WEIGHT = 20;
+const USER_ROLE_WEIGHT = 60;
 const ITEMS_PER_EXTRA_WEIGHT = 20;
 const RATE_LIMIT_PAUSE_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
@@ -61,6 +65,21 @@ export class HyperliquidInfoClient {
 
   metaAndAssetCtxs(): Promise<MetaAndAssetCtxs> {
     return this.post({ type: 'metaAndAssetCtxs' }, STANDARD_WEIGHT);
+  }
+
+  orderStatus(
+    user: string,
+    oid: number | string,
+  ): Promise<OrderStatusResponse> {
+    return this.post({ type: 'orderStatus', user, oid }, LIGHT_WEIGHT);
+  }
+
+  userAbstraction(user: string): Promise<UserAbstraction> {
+    return this.post({ type: 'userAbstraction', user }, STANDARD_WEIGHT);
+  }
+
+  userRole(user: string): Promise<UserRoleResponse> {
+    return this.post({ type: 'userRole', user }, USER_ROLE_WEIGHT);
   }
 
   private async post<T>(

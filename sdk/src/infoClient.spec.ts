@@ -97,7 +97,14 @@ describe('HyperliquidInfoClient', () => {
   it.each([
     ['clearinghouseState', () => client.clearinghouseState(USER), 2],
     ['l2Book', () => client.l2Book('BTC'), 2],
+    [
+      'orderStatus',
+      () => client.orderStatus(USER, '0x1234567890abcdef1234567890abcdef'),
+      2,
+    ],
     ['metaAndAssetCtxs', () => client.metaAndAssetCtxs(), 20],
+    ['userAbstraction', () => client.userAbstraction(USER), 20],
+    ['userRole', () => client.userRole(USER), 60],
   ])('takes the documented weight for %s', async (type, call, weight) => {
     answerWith({});
 

@@ -25,6 +25,41 @@ enum Book {
   SHADOW
 }
 
+enum FillSource {
+  STREAM
+  SNAPSHOT
+  BACKFILL
+}
+
+enum CopyAction {
+  OPEN
+  INCREASE
+  REDUCE
+  CLOSE
+  FLIP
+}
+
+enum Verdict {
+  COPY
+  SKIP
+}
+
+enum OrderPurpose {
+  ENTRY
+  EXIT
+  STOP
+  RECONCILE
+}
+
+enum OrderStatus {
+  SUBMITTED
+  FILLED
+  PARTIALLY_FILLED
+  UNFILLED
+  REJECTED
+  UNKNOWN
+}
+
 model Wallet {
   address          String       @id
   status           WalletStatus @default(CANDIDATE)
@@ -43,9 +78,70 @@ model Wallet {
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  fills     LeaderFill[]
+  decisions CopyDecision[]
   positions CopyPosition[]
 
   @@index([status])
+}
+
+model LeaderFill {
+  id            BigInt     @id @default(autoincrement())
+  walletAddress String     @map("wallet_address")
+  coin          String
+  tid           BigInt
+  px            Decimal    @db.Decimal(30, 10)
+  sz            Decimal    @db.Decimal(30, 10)
+  side          String
+  time          DateTime   @db.Timestamptz(3)
+  startPosition Decimal    @map("start_position") @db.Decimal(30, 10)
+  dir           String
+  closedPnl     Decimal    @map("closed_pnl") @db.Decimal(30, 10)
+  fee           Decimal    @db.Decimal(30, 10)
+  oid           BigInt
+  hash          String
+  crossed       Boolean
+  twapId        BigInt?    @map("twap_id")
+  isLiquidation Boolean    @default(false) @map("is_liquidation")
+  source        FillSource
+  clusterId     Int?       @map("cluster_id")
+  receivedAt    DateTime   @map("received_at") @db.Timestamptz(3)
+  ingestedAt    DateTime   @default(now()) @map("ingested_at") @db.Timestamptz(3)
+  signalledAt   DateTime?  @map("signalled_at") @db.Timestamptz(3)
+
+  wallet Wallet @relation(fields: [walletAddress], references: [address])
+
+  @@unique([walletAddress, coin, tid])
+  @@index([walletAddress, time])
+  @@index([walletAddress, signalledAt])
+}
+
+model CopyDecision {
+  id             BigInt     @id @default(autoincrement())
+  book           Book
+  walletAddress  String     @map("wallet_address")
+  coin           String
+  signalKey      String     @map("signal_key")
+  signalSource   String     @map("signal_source")
+  action         CopyAction
+  positionBefore Decimal    @map("position_before") @db.Decimal(30, 10)
+  positionAfter  Decimal    @map("position_after") @db.Decimal(30, 10)
+  leaderVwap     Decimal    @map("leader_vwap") @db.Decimal(30, 10)
+  leaderTime     DateTime   @map("leader_time") @db.Timestamptz(3)
+  receivedAt     DateTime   @map("received_at") @db.Timestamptz(3)
+  decidedAt      DateTime   @map("decided_at") @db.Timestamptz(3)
+  verdict        Verdict
+  reason         String
+  trace          Json
+  targetSize     Decimal?   @map("target_size") @db.Decimal(30, 10)
+  orderSize      Decimal?   @map("order_size") @db.Decimal(30, 10)
+
+  wallet Wallet  @relation(fields: [walletAddress], references: [address])
+  orders Order[]
+
+  @@unique([book, signalKey])
+  @@index([decidedAt])
+  @@index([walletAddress, decidedAt])
 }
 
 model CopyPosition {
@@ -70,9 +166,39 @@ model CopyPosition {
   leaderOpenTid    BigInt    @map("leader_open_tid")
 
   wallet Wallet  @relation(fields: [walletAddress], references: [address])
+  orders Order[]
 
   @@index([book, isOpen])
   @@index([walletAddress, isOpen])
+}
+
+model Order {
+  id             BigInt       @id @default(autoincrement())
+  decisionId     BigInt?      @map("decision_id")
+  positionId     BigInt?      @map("position_id")
+  book           Book
+  cloid          String       @unique
+  coin           String
+  isBuy          Boolean      @map("is_buy")
+  size           Decimal      @db.Decimal(30, 10)
+  limitPx        Decimal      @map("limit_px") @db.Decimal(30, 10)
+  reduceOnly     Boolean      @map("reduce_only")
+  purpose        OrderPurpose
+  attempt        Int          @default(1)
+  status         OrderStatus
+  filledSize     Decimal      @default(0) @map("filled_size") @db.Decimal(30, 10)
+  avgPx          Decimal?     @map("avg_px") @db.Decimal(30, 10)
+  feeUsd         Decimal      @default(0) @map("fee_usd") @db.Decimal(20, 6)
+  slippageBps    Float?       @map("slippage_bps")
+  exchangeOid    BigInt?      @map("exchange_oid")
+  error          String?
+  submittedAt    DateTime     @map("submitted_at") @db.Timestamptz(3)
+  acknowledgedAt DateTime?    @map("acknowledged_at") @db.Timestamptz(3)
+
+  decision CopyDecision? @relation(fields: [decisionId], references: [id])
+  position CopyPosition? @relation(fields: [positionId], references: [id])
+
+  @@index([status])
 }
 
 model BookState {

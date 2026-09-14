@@ -5,6 +5,10 @@ function positiveInteger(fallback: number) {
   return z.coerce.number().int().positive().default(fallback);
 }
 
+function nonNegativeInteger(fallback: number) {
+  return z.coerce.number().int().nonnegative().default(fallback);
+}
+
 function positiveNumber(fallback: number) {
   return z.coerce.number().positive().default(fallback);
 }
@@ -33,6 +37,7 @@ export const serverConfigSchema = z
     HYPERLIQUID_API_URL: z.url().optional(),
     HYPERLIQUID_WEIGHT_PER_MINUTE: positiveInteger(400),
     HYPERLIQUID_ACCOUNT_ADDRESS: accountAddress.optional(),
+    HYPERLIQUID_AGENT_KEY_FILE: z.string().min(1).optional(),
     PAPER_EQUITY_USD: positiveNumber(25_000),
     LIVE_ALLOCATION_USD: positiveNumber(5_000),
     SHADOW_ALLOCATION_USD: positiveNumber(5_000),
@@ -46,7 +51,31 @@ export const serverConfigSchema = z
     MAX_OPEN_COPIES: positiveInteger(12),
     MARGIN_BUFFER: z.coerce.number().min(1).default(1.2),
     DAILY_LOSS_LIMIT: fraction(0.05),
+    STOP_LOSS_ALLOCATION_SHARE: fraction(0.2),
+    STOP_MAX_DISTANCE: fraction(0.25),
     MAX_EXCHANGE_LEVERAGE: positiveInteger(5),
+    ORDER_EXPIRY_MS: positiveInteger(5_000),
+    PAPER_ORDER_LATENCY_MS: nonNegativeInteger(900),
+    TAKER_FEE_BPS: z.coerce.number().nonnegative().default(4.5),
+  })
+  .superRefine((config, context) => {
+    if (config.EXECUTION_MODE !== 'live') {
+      return;
+    }
+    if (config.HYPERLIQUID_ACCOUNT_ADDRESS === undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HYPERLIQUID_ACCOUNT_ADDRESS'],
+        message: 'is required in live mode',
+      });
+    }
+    if (config.HYPERLIQUID_AGENT_KEY_FILE === undefined) {
+      context.addIssue({
+        code: 'custom',
+        path: ['HYPERLIQUID_AGENT_KEY_FILE'],
+        message: 'is required in live mode',
+      });
+    }
   })
   .transform((config) => {
     const urls = HYPERLIQUID_URLS[config.HYPERLIQUID_NETWORK];
