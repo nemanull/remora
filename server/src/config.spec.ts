@@ -1,8 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { validateServerConfig } from './config';
 
+const FIRST_HASH = 'a'.repeat(64);
+const SECOND_HASH = 'b'.repeat(64);
 const REQUIRED = {
   DATABASE_URL: 'postgresql://remora:remora@127.0.0.1:5432/remora',
+  CLUSTER_TOKEN_HASHES: `1:${FIRST_HASH}`,
 };
 const LIVE = {
   ...REQUIRED,
@@ -15,6 +18,7 @@ describe('validateServerConfig', () => {
   it('fills every default of the configuration table', () => {
     expect(validateServerConfig(REQUIRED)).toEqual({
       ...REQUIRED,
+      CLUSTER_TOKEN_HASHES: [{ clusterId: 1, tokenHash: FIRST_HASH }],
       HOST: '127.0.0.1',
       PORT: 3000,
       EXECUTION_MODE: 'paper',
@@ -41,6 +45,7 @@ describe('validateServerConfig', () => {
       ORDER_EXPIRY_MS: 5_000,
       PAPER_ORDER_LATENCY_MS: 900,
       TAKER_FEE_BPS: 4.5,
+      ASSIGNMENT_GRACE_MS: 30_000,
     });
   });
 
@@ -80,6 +85,31 @@ describe('validateServerConfig', () => {
     expect(() =>
       validateServerConfig({ ...LIVE, HYPERLIQUID_ACCOUNT_ADDRESS: '0x1234' }),
     ).toThrow(/HYPERLIQUID_ACCOUNT_ADDRESS/);
+  });
+
+  it('maps each token hash to its cluster id', () => {
+    const config = validateServerConfig({
+      ...REQUIRED,
+      CLUSTER_TOKEN_HASHES: ` 1:${FIRST_HASH}, 2:${SECOND_HASH} `,
+    });
+
+    expect(config.CLUSTER_TOKEN_HASHES).toEqual([
+      { clusterId: 1, tokenHash: FIRST_HASH },
+      { clusterId: 2, tokenHash: SECOND_HASH },
+    ]);
+  });
+
+  it.each([
+    ['a hash that is not sha256 hex', `1:${'g'.repeat(64)}`],
+    ['an uppercase hash', `1:${'A'.repeat(64)}`],
+    ['a cluster id of zero', `0:${FIRST_HASH}`],
+    ['a cluster id listed twice', `1:${FIRST_HASH},1:${SECOND_HASH}`],
+    ['a hash listed twice', `1:${FIRST_HASH},2:${FIRST_HASH}`],
+    ['no entries', ' , '],
+  ])('rejects cluster token hashes with %s', (_, value) => {
+    expect(() =>
+      validateServerConfig({ ...REQUIRED, CLUSTER_TOKEN_HASHES: value }),
+    ).toThrow(/CLUSTER_TOKEN_HASHES/);
   });
 
   it('treats empty variables as unset', () => {

@@ -1,6 +1,13 @@
 import { HYPERLIQUID_URLS, normalizeAddress } from '@remora/sdk';
 import { z } from 'zod';
 
+const TOKEN_HASH_PATTERN = /^[0-9a-f]{64}$/;
+
+export type ClusterTokenHash = {
+  clusterId: number;
+  tokenHash: string;
+};
+
 function positiveInteger(fallback: number) {
   return z.coerce.number().int().positive().default(fallback);
 }
@@ -16,6 +23,46 @@ function positiveNumber(fallback: number) {
 function fraction(fallback: number) {
   return z.coerce.number().gt(0).lt(1).default(fallback);
 }
+
+function readClusterTokenHashes(value: string): ClusterTokenHash[] | string {
+  const entries = value
+    .split(',')
+    .map((entry) => entry.trim())
+    .filter((entry) => entry.length > 0);
+  if (entries.length === 0) {
+    return 'needs at least one <cluster id>:<sha256 hex> entry';
+  }
+  const hashes: ClusterTokenHash[] = [];
+  for (const entry of entries) {
+    const [id, tokenHash, ...rest] = entry.split(':');
+    const clusterId = Number(id);
+    if (
+      rest.length > 0 ||
+      !Number.isInteger(clusterId) ||
+      clusterId < 1 ||
+      !TOKEN_HASH_PATTERN.test(tokenHash ?? '')
+    ) {
+      return `entry ${entry} is not <cluster id>:<sha256 hex>`;
+    }
+    hashes.push({ clusterId, tokenHash });
+  }
+  if (new Set(hashes.map((hash) => hash.clusterId)).size !== hashes.length) {
+    return 'lists a cluster id twice';
+  }
+  if (new Set(hashes.map((hash) => hash.tokenHash)).size !== hashes.length) {
+    return 'lists a token hash twice';
+  }
+  return hashes;
+}
+
+const clusterTokenHashes = z.string().transform((value, context) => {
+  const hashes = readClusterTokenHashes(value);
+  if (typeof hashes === 'string') {
+    context.addIssue({ code: 'custom', message: hashes });
+    return z.NEVER;
+  }
+  return hashes;
+});
 
 const accountAddress = z.string().transform((value, context) => {
   const address = normalizeAddress(value);
@@ -38,6 +85,7 @@ export const serverConfigSchema = z
     HYPERLIQUID_WEIGHT_PER_MINUTE: positiveInteger(400),
     HYPERLIQUID_ACCOUNT_ADDRESS: accountAddress.optional(),
     HYPERLIQUID_AGENT_KEY_FILE: z.string().min(1).optional(),
+    CLUSTER_TOKEN_HASHES: clusterTokenHashes,
     PAPER_EQUITY_USD: positiveNumber(25_000),
     LIVE_ALLOCATION_USD: positiveNumber(5_000),
     SHADOW_ALLOCATION_USD: positiveNumber(5_000),
@@ -57,6 +105,7 @@ export const serverConfigSchema = z
     ORDER_EXPIRY_MS: positiveInteger(5_000),
     PAPER_ORDER_LATENCY_MS: nonNegativeInteger(900),
     TAKER_FEE_BPS: z.coerce.number().nonnegative().default(4.5),
+    ASSIGNMENT_GRACE_MS: nonNegativeInteger(30_000),
   })
   .superRefine((config, context) => {
     if (config.EXECUTION_MODE !== 'live') {

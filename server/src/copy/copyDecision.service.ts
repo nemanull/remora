@@ -440,13 +440,15 @@ export class CopyDecisionService {
   private async readLeaderView(wallet: string): Promise<LeaderView> {
     const leader = await this.prisma.wallet.findUnique({
       where: { address: wallet },
+      include: { state: true },
     });
+    const equity = leader?.state?.equityUsd ?? null;
     return {
       wallet,
       status: leader?.status ?? 'CANDIDATE',
       isPaused: leader?.isPaused ?? false,
-      equityUsd: null,
-      equityAt: null,
+      equityUsd: equity === null ? null : new Decimal(equity.toString()),
+      equityAt: leader?.state?.equityAt ?? null,
     };
   }
 

@@ -145,6 +145,9 @@ importers:
       dotenv:
         specifier: 17.4.2
         version: 17.4.2
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
       prisma:
         specifier: 7.8.0
         version: 7.8.0(@types/react-dom@19.2.3(@types/react@19.2.14))(@types/react@19.2.14)(magicast@0.5.3)(react-dom@19.2.6(react@19.2.6))(react@19.2.6)(typescript@5.9.3)
@@ -176,18 +179,27 @@ importers:
       '@nestjs/testing':
         specifier: 11.1.21
         version: 11.1.21(@nestjs/common@11.1.21(reflect-metadata@0.2.2)(rxjs@7.8.2))(@nestjs/core@11.1.21)(@nestjs/platform-express@11.1.21)
+      '@testcontainers/postgresql':
+        specifier: 11.14.0
+        version: 11.14.0
       '@types/express':
         specifier: 5.0.6
         version: 5.0.6
       '@types/node':
         specifier: 24.12.4
         version: 24.12.4
+      '@types/pg':
+        specifier: 8.20.0
+        version: 8.20.0
       '@types/ws':
         specifier: 8.18.1
         version: 8.18.1
       '@vitest/coverage-v8':
         specifier: 4.1.6
         version: 4.1.6(vitest@4.1.6)
+      testcontainers:
+        specifier: 11.14.0
+        version: 11.14.0
       typescript:
         specifier: 5.9.3
         version: 5.9.3
@@ -1038,6 +1050,9 @@ packages:
 
   '@standard-schema/spec@1.1.0':
     resolution: {integrity: sha512-l2aFy5jALhniG5HgqrD6jXLi/rUWrKvqN/qJx6yoJsgKhblVd+iqqU4RCXavm/jPityDo5TCvKMnpjKnOriy0w==}
+
+  '@testcontainers/postgresql@11.14.0':
+    resolution: {integrity: sha512-wYbJn8GRTj8qfqzfVubxioYWlHJU/ImIjuzPwyy9C5Qfo6g3GLduPZAj+BifvqTZjgT3gd4gFVLCPhBji7dc1w==}
 
   '@testcontainers/redis@11.14.0':
     resolution: {integrity: sha512-WX005slz2JMQPw2avbSjf5awVjpmFhOs5xCxeGSYLcV5ia4W1edv/P6MdOw4dZnvDQDuN5LfqNoV/ut3XGb2pA==}
@@ -4286,6 +4301,15 @@ snapshots:
       '@scure/base': 1.2.6
 
   '@standard-schema/spec@1.1.0': {}
+
+  '@testcontainers/postgresql@11.14.0':
+    dependencies:
+      testcontainers: 11.14.0
+    transitivePeerDependencies:
+      - bare-abort-controller
+      - bare-buffer
+      - react-native-b4a
+      - supports-color
 
   '@testcontainers/redis@11.14.0':
     dependencies:

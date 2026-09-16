@@ -78,11 +78,27 @@ model Wallet {
   createdAt        DateTime     @default(now()) @map("created_at") @db.Timestamptz(3)
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
+  cluster   Cluster?       @relation(fields: [clusterId], references: [id])
   fills     LeaderFill[]
+  state     LeaderState?
   decisions CopyDecision[]
   positions CopyPosition[]
 
   @@index([status])
+}
+
+model Cluster {
+  id              Int       @id
+  isOnline        Boolean   @default(false) @map("is_online")
+  sessionId       String?   @map("session_id")
+  version         String?
+  maxWallets      Int?      @map("max_wallets")
+  assignVersion   Int       @default(0) @map("assign_version")
+  connectedAt     DateTime? @map("connected_at") @db.Timestamptz(3)
+  lastHeartbeatAt DateTime? @map("last_heartbeat_at") @db.Timestamptz(3)
+  lastStats       Json?     @map("last_stats")
+
+  wallets Wallet[]
 }
 
 model LeaderFill {
@@ -114,6 +130,16 @@ model LeaderFill {
   @@unique([walletAddress, coin, tid])
   @@index([walletAddress, time])
   @@index([walletAddress, signalledAt])
+}
+
+model LeaderState {
+  walletAddress String    @id @map("wallet_address")
+  equityUsd     Decimal?  @map("equity_usd") @db.Decimal(20, 2)
+  equityAt      DateTime? @map("equity_at") @db.Timestamptz(3)
+  positions     Json?
+  positionsAt   DateTime? @map("positions_at") @db.Timestamptz(3)
+
+  wallet Wallet @relation(fields: [walletAddress], references: [address])
 }
 
 model CopyDecision {

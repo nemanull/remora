@@ -1,4 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import type { CollectorStats } from '@remora/sdk';
 import { Observable, Subject } from 'rxjs';
 import type { BookName } from './types';
 
@@ -33,6 +34,12 @@ export type CopyEvent =
       change: 'opened' | 'resized' | 'closed';
       size: string;
       realizedPnl: string;
+    }
+  | {
+      type: 'collector';
+      clusterId: number;
+      change: 'connected' | 'disconnected' | 'heartbeat' | 'assigned';
+      stats: CollectorStats | null;
     }
   | {
       type: 'killSwitch';
