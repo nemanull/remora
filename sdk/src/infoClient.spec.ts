@@ -86,6 +86,18 @@ describe('HyperliquidInfoClient', () => {
     expect(events).toEqual(['take 20', 'fetch userFillsByTime', 'charge 100']);
   });
 
+  it('charges the ledger updates like fills', async () => {
+    answerWith(Array.from({ length: 45 }, () => ({})));
+
+    await client.userNonFundingLedgerUpdates(USER, 0);
+
+    expect(events).toEqual([
+      'take 20',
+      'fetch userNonFundingLedgerUpdates',
+      'charge 2',
+    ]);
+  });
+
   it('charges nothing after a portfolio call', async () => {
     answerWith([]);
 

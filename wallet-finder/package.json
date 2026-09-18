@@ -3,6 +3,9 @@
   "version": "0.0.1",
   "private": true,
   "license": "UNLICENSED",
+  "files": [
+    "dist"
+  ],
   "scripts": {
     "prebuild": "pnpm --filter @remora/sdk build",
     "build": "nest build",
@@ -20,12 +23,15 @@
     "@remora/sdk": "workspace:*",
     "@nestjs/bullmq": "11.0.4",
     "@nestjs/common": "11.1.21",
+    "@nestjs/config": "4.0.4",
     "@nestjs/core": "11.1.21",
     "@nestjs/platform-express": "11.1.21",
     "bullmq": "5.76.8",
     "decimal.js": "10.6.0",
+    "prom-client": "15.1.3",
     "reflect-metadata": "0.2.2",
-    "rxjs": "7.8.2"
+    "rxjs": "7.8.2",
+    "zod": "4.4.3"
   },
   "devDependencies": {
     "@nestjs/cli": "11.0.21",

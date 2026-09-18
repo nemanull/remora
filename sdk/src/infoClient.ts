@@ -3,6 +3,7 @@ import type {
   HyperliquidFill,
   L2BookResponse,
   MetaAndAssetCtxs,
+  NonFundingLedgerUpdate,
   OrderStatusResponse,
   PortfolioResponse,
   UserAbstraction,
@@ -43,6 +44,18 @@ export class HyperliquidInfoClient {
   ): Promise<HyperliquidFill[]> {
     return this.post(
       { type: 'userFillsByTime', user, startTime, endTime },
+      STANDARD_WEIGHT,
+      ITEMS_PER_EXTRA_WEIGHT,
+    );
+  }
+
+  userNonFundingLedgerUpdates(
+    user: string,
+    startTime: number,
+    endTime?: number,
+  ): Promise<NonFundingLedgerUpdate[]> {
+    return this.post(
+      { type: 'userNonFundingLedgerUpdates', user, startTime, endTime },
       STANDARD_WEIGHT,
       ITEMS_PER_EXTRA_WEIGHT,
     );

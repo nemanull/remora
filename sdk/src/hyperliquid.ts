@@ -18,6 +18,8 @@ export const HYPERLIQUID_URLS = {
   { apiUrl: string; wsUrl: string }
 >;
 
+export const STATS_DATA_URL = 'https://stats-data.hyperliquid.xyz/Mainnet';
+
 export type HyperliquidSubscriptionMethod = 'subscribe' | 'unsubscribe';
 
 export type HyperliquidSubscription =
@@ -231,6 +233,31 @@ export type PerpAssetContext = {
 };
 
 export type MetaAndAssetCtxs = [meta: PerpMeta, contexts: PerpAssetContext[]];
+
+export type NonFundingLedgerDeltaType =
+  | 'deposit'
+  | 'withdraw'
+  | 'internalTransfer'
+  | 'subAccountTransfer'
+  | 'liquidation'
+  | 'vaultCreate'
+  | 'vaultDeposit'
+  | 'vaultDistribution'
+  | 'vaultWithdraw'
+  | 'vaultLeaderCommission'
+  | 'spotTransfer'
+  | 'accountClassTransfer'
+  | 'spotGenesis'
+  | 'rewardsClaim';
+
+export type NonFundingLedgerUpdate = {
+  time: number;
+  hash: string;
+  delta: {
+    type: NonFundingLedgerDeltaType;
+    usdc?: DecimalString;
+  };
+};
 
 export type HyperliquidOrderStatus =
   | 'open'
