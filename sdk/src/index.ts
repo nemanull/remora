@@ -7,6 +7,4 @@ export * from './reconnectDelay.js';
 export * from './scoringGates.js';
 export * from './scoringJobParsers.js';
 export * from './scoringJobs.js';
-export * from './types.js';
-export * from './validation.js';
 export * from './weightBudget.js';
