@@ -232,6 +232,13 @@ export type PerpAssetContext = {
 
 export type MetaAndAssetCtxs = [meta: PerpMeta, contexts: PerpAssetContext[]];
 
+export type FundingHistoryItem = {
+  coin: string;
+  fundingRate: DecimalString;
+  premium: DecimalString;
+  time: number;
+};
+
 export type NonFundingLedgerDeltaType =
   | 'deposit'
   | 'withdraw'

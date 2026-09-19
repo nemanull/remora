@@ -76,6 +76,7 @@ const accountAddress = z.string().transform((value, context) => {
 export const serverConfigSchema = z
   .object({
     DATABASE_URL: z.url(),
+    REDIS_URL: z.url(),
     HOST: z.string().min(1).default('127.0.0.1'),
     PORT: z.coerce.number().int().min(1).max(65_535).default(3000),
     EXECUTION_MODE: z.enum(['paper', 'live']).default('paper'),
@@ -86,6 +87,11 @@ export const serverConfigSchema = z
     HYPERLIQUID_ACCOUNT_ADDRESS: accountAddress.optional(),
     HYPERLIQUID_AGENT_KEY_FILE: z.string().min(1).optional(),
     CLUSTER_TOKEN_HASHES: clusterTokenHashes,
+    TRACKED_TARGET: positiveInteger(6),
+    SELECTION_STREAK_RUNS: positiveInteger(3),
+    MAX_LIVE_LEADERS: positiveInteger(4),
+    PROMOTION_MODE: z.enum(['auto', 'manual']).optional(),
+    DISCOVERY_CRON: z.string().min(1).default('0 2 * * *'),
     PAPER_EQUITY_USD: positiveNumber(25_000),
     LIVE_ALLOCATION_USD: positiveNumber(5_000),
     SHADOW_ALLOCATION_USD: positiveNumber(5_000),
@@ -132,6 +138,9 @@ export const serverConfigSchema = z
       ...config,
       HYPERLIQUID_WS_URL: config.HYPERLIQUID_WS_URL ?? urls.wsUrl,
       HYPERLIQUID_API_URL: config.HYPERLIQUID_API_URL ?? urls.apiUrl,
+      PROMOTION_MODE:
+        config.PROMOTION_MODE ??
+        (config.EXECUTION_MODE === 'live' ? 'manual' : 'auto'),
     };
   });
 

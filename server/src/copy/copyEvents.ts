@@ -42,6 +42,13 @@ export type CopyEvent =
       stats: CollectorStats | null;
     }
   | {
+      type: 'leader';
+      wallet: string;
+      status: string;
+      isPaused: boolean;
+      reason: string | null;
+    }
+  | {
       type: 'killSwitch';
       book: BookName;
       active: boolean;

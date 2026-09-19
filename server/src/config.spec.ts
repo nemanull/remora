@@ -5,6 +5,7 @@ const FIRST_HASH = 'a'.repeat(64);
 const SECOND_HASH = 'b'.repeat(64);
 const REQUIRED = {
   DATABASE_URL: 'postgresql://remora:remora@127.0.0.1:5432/remora',
+  REDIS_URL: 'redis://127.0.0.1:6379',
   CLUSTER_TOKEN_HASHES: `1:${FIRST_HASH}`,
 };
 const LIVE = {
@@ -26,6 +27,11 @@ describe('validateServerConfig', () => {
       HYPERLIQUID_WS_URL: 'wss://api.hyperliquid.xyz/ws',
       HYPERLIQUID_API_URL: 'https://api.hyperliquid.xyz',
       HYPERLIQUID_WEIGHT_PER_MINUTE: 400,
+      TRACKED_TARGET: 6,
+      SELECTION_STREAK_RUNS: 3,
+      MAX_LIVE_LEADERS: 4,
+      PROMOTION_MODE: 'auto',
+      DISCOVERY_CRON: '0 2 * * *',
       PAPER_EQUITY_USD: 25_000,
       LIVE_ALLOCATION_USD: 5_000,
       SHADOW_ALLOCATION_USD: 5_000,
@@ -79,6 +85,15 @@ describe('validateServerConfig', () => {
     expect(() =>
       validateServerConfig({ ...REQUIRED, EXECUTION_MODE: 'live' }),
     ).toThrow(/HYPERLIQUID_ACCOUNT_ADDRESS[\s\S]*HYPERLIQUID_AGENT_KEY_FILE/);
+  });
+
+  it('defaults promotion to manual and lowercases the account in live mode', () => {
+    const config = validateServerConfig(LIVE);
+
+    expect(config.PROMOTION_MODE).toBe('manual');
+    expect(config.HYPERLIQUID_ACCOUNT_ADDRESS).toBe(
+      '0xc5fdde670e647823dbf07a09c452fe3f33df8677',
+    );
   });
 
   it('rejects an account address that is not an address', () => {

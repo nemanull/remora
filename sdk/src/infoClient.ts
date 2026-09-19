@@ -1,4 +1,5 @@
 import type {
+  FundingHistoryItem,
   HyperliquidClearinghouseState,
   HyperliquidFill,
   L2BookResponse,
@@ -78,6 +79,18 @@ export class HyperliquidInfoClient {
 
   metaAndAssetCtxs(): Promise<MetaAndAssetCtxs> {
     return this.post({ type: 'metaAndAssetCtxs' }, STANDARD_WEIGHT);
+  }
+
+  fundingHistory(
+    coin: string,
+    startTime: number,
+    endTime?: number,
+  ): Promise<FundingHistoryItem[]> {
+    return this.post(
+      { type: 'fundingHistory', coin, startTime, endTime },
+      STANDARD_WEIGHT,
+      ITEMS_PER_EXTRA_WEIGHT,
+    );
   }
 
   orderStatus(

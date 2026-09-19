@@ -79,12 +79,61 @@ model Wallet {
   updatedAt        DateTime     @updatedAt @map("updated_at") @db.Timestamptz(3)
 
   cluster   Cluster?       @relation(fields: [clusterId], references: [id])
+  scores    WalletScore[]
   fills     LeaderFill[]
   state     LeaderState?
   decisions CopyDecision[]
   positions CopyPosition[]
 
   @@index([status])
+}
+
+model ScoringRun {
+  id              String    @id
+  modelVersion    Int       @map("model_version")
+  startedAt       DateTime  @map("started_at") @db.Timestamptz(3)
+  finishedAt      DateTime? @map("finished_at") @db.Timestamptz(3)
+  expectedScores  Int?      @map("expected_scores")
+  leaderboardRows Int?      @map("leaderboard_rows")
+  stageOneCount   Int?      @map("stage_one_count")
+  stageTwoCount   Int?      @map("stage_two_count")
+  stageThreeCount Int?      @map("stage_three_count")
+
+  scores WalletScore[]
+}
+
+model WalletScore {
+  id                Int       @id @default(autoincrement())
+  runId             String    @map("run_id")
+  walletAddress     String    @map("wallet_address")
+  stage             Int
+  passed            Boolean
+  gateFailures      String[]  @map("gate_failures")
+  preliminary       Float?
+  composite         Float?
+  accountValueUsd   Decimal   @map("account_value_usd") @db.Decimal(20, 2)
+  historyDays       Int       @map("history_days")
+  periods           Int
+  psr               Float?
+  dsr               Float?
+  maxDrawdown       Float?    @map("max_drawdown")
+  edgeBps           Float?    @map("edge_bps")
+  sortino30d        Float?    @map("sortino_30d")
+  positiveShare     Float?    @map("positive_share")
+  perpPnlShare      Float?    @map("perp_pnl_share")
+  holdMinutes       Float?    @map("hold_minutes")
+  ordersPerDay      Float?    @map("orders_per_day")
+  makerShare        Float?    @map("maker_share")
+  coreNotionalShare Float?    @map("core_notional_share")
+  fillsWindowFrom   DateTime? @map("fills_window_from") @db.Timestamptz(3)
+  components        Json?
+  createdAt         DateTime  @default(now()) @map("created_at") @db.Timestamptz(3)
+
+  run    ScoringRun @relation(fields: [runId], references: [id])
+  wallet Wallet     @relation(fields: [walletAddress], references: [address])
+
+  @@unique([runId, walletAddress])
+  @@index([walletAddress, createdAt])
 }
 
 model Cluster {
@@ -225,6 +274,18 @@ model Order {
   position CopyPosition? @relation(fields: [positionId], references: [id])
 
   @@index([status])
+}
+
+model BookSnapshot {
+  book             Book
+  takenAt          DateTime @map("taken_at") @db.Timestamptz(3)
+  equityUsd        Decimal  @map("equity_usd") @db.Decimal(20, 2)
+  unrealizedPnl    Decimal  @map("unrealized_pnl") @db.Decimal(20, 2)
+  realizedPnlToday Decimal  @map("realized_pnl_today") @db.Decimal(20, 2)
+  grossExposureUsd Decimal  @map("gross_exposure_usd") @db.Decimal(20, 2)
+  openPositions    Int      @map("open_positions")
+
+  @@id([book, takenAt])
 }
 
 model BookState {

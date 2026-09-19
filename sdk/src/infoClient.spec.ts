@@ -86,6 +86,14 @@ describe('HyperliquidInfoClient', () => {
     expect(events).toEqual(['take 20', 'fetch userFillsByTime', 'charge 100']);
   });
 
+  it('rounds the surcharge down to whole blocks of 20 items', async () => {
+    answerWith(Array.from({ length: 39 }, (_, index) => fill(index)));
+
+    await client.fundingHistory('BTC', 0);
+
+    expect(events).toEqual(['take 20', 'fetch fundingHistory', 'charge 1']);
+  });
+
   it('charges the ledger updates like fills', async () => {
     answerWith(Array.from({ length: 45 }, () => ({})));
 
