@@ -112,6 +112,8 @@ export const serverConfigSchema = z
     PAPER_ORDER_LATENCY_MS: nonNegativeInteger(900),
     TAKER_FEE_BPS: z.coerce.number().nonnegative().default(4.5),
     ASSIGNMENT_GRACE_MS: nonNegativeInteger(30_000),
+    TELEGRAM_BOT_TOKEN: z.string().min(1).optional(),
+    TELEGRAM_CHAT_ID: z.string().min(1).optional(),
   })
   .superRefine((config, context) => {
     if (config.EXECUTION_MODE !== 'live') {

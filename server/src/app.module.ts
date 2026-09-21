@@ -1,5 +1,6 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ApiModule } from './api/api.module';
 import { ClustersModule } from './clusters/clusters.module';
 import { validateServerConfig } from './config';
 import { CopyModule } from './copy/copy.module';
@@ -10,6 +11,7 @@ import { MaintenanceModule } from './jobs/maintenance.module';
 import { LeadersModule } from './leaders/leaders.module';
 import { MarketModule } from './market/market.module';
 import { MetricsModule } from './metrics/metrics.module';
+import { NotificationsModule } from './notifications/notifications.module';
 import { PrismaModule } from './prisma/prisma.module';
 
 @Module({
@@ -25,6 +27,8 @@ import { PrismaModule } from './prisma/prisma.module';
     ClustersModule,
     LeadersModule,
     MaintenanceModule,
+    ApiModule,
+    NotificationsModule,
   ],
 })
 export class AppModule {}

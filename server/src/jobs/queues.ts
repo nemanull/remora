@@ -8,6 +8,7 @@ export {
 
 export const MAINTENANCE_QUEUE = 'maintenance';
 export const SELECTION_QUEUE = 'selection';
+export const NOTIFICATIONS_QUEUE = 'notifications';
 
 export const START_DISCOVERY_JOB = 'start-discovery';
 export const SELECT_LEADERS_JOB = 'select-leaders';
@@ -18,3 +19,4 @@ export const ACCRUE_PAPER_FUNDING_JOB = 'accrue-paper-funding';
 export const REFRESH_MARKETS_JOB = 'refresh-markets';
 export const ROLL_TRADING_DAY_JOB = 'roll-trading-day';
 export const PRUNE_FILLS_JOB = 'prune-fills';
+export const SEND_TELEGRAM_JOB = 'send-telegram';

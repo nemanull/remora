@@ -6,6 +6,7 @@ import { JobSchedulersService } from './jobSchedulers.service';
 import {
   DISCOVERY_QUEUE,
   MAINTENANCE_QUEUE,
+  NOTIFICATIONS_QUEUE,
   SCORING_RESULTS_QUEUE,
   SELECTION_QUEUE,
 } from './queues';
@@ -26,6 +27,7 @@ import {
     BullModule.registerQueue(
       { name: MAINTENANCE_QUEUE },
       { name: SELECTION_QUEUE },
+      { name: NOTIFICATIONS_QUEUE },
       { name: SCORING_RESULTS_QUEUE },
       { name: DISCOVERY_QUEUE },
     ),

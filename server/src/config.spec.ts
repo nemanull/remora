@@ -131,9 +131,11 @@ describe('validateServerConfig', () => {
     const config = validateServerConfig({
       ...REQUIRED,
       PORT: '',
+      TELEGRAM_BOT_TOKEN: '',
     });
 
     expect(config.PORT).toBe(3000);
+    expect(config.TELEGRAM_BOT_TOKEN).toBeUndefined();
   });
 
   it('reads numbers from environment strings', () => {
