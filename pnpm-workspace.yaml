@@ -3,6 +3,7 @@ packages:
   - server
   - detection-cluster
   - wallet-finder
+  - dashboard
 
 resolutionMode: time-based
 

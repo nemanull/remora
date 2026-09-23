@@ -1,0 +1,32 @@
+{
+  "name": "dashboard",
+  "version": "0.0.1",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "vite",
+    "build": "vite build",
+    "preview": "vite preview",
+    "typecheck": "tsc --noEmit",
+    "lint": "eslint \"src/**/*.{ts,tsx}\""
+  },
+  "dependencies": {
+    "@tanstack/react-query": "5.100.10",
+    "react": "19.2.6",
+    "react-dom": "19.2.6",
+    "react-router": "7.15.1",
+    "recharts": "3.8.1"
+  },
+  "devDependencies": {
+    "@remora/sdk": "workspace:*",
+    "@tailwindcss/vite": "4.3.0",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "@vitejs/plugin-react": "6.0.2",
+    "eslint-plugin-react-hooks": "7.1.1",
+    "eslint-plugin-react-refresh": "0.5.2",
+    "tailwindcss": "4.3.0",
+    "typescript": "5.9.3",
+    "vite": "8.0.13"
+  }
+}
