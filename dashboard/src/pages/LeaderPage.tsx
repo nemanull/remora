@@ -14,6 +14,7 @@ import {
   queryKeys,
 } from '../api';
 import { CopyButton } from '../components/Address';
+import { CopyGap } from '../components/CopyGap';
 import { DecisionTable } from '../components/DecisionTable';
 import { ExternalIcon } from '../components/icons';
 import {
@@ -298,7 +299,8 @@ export function LeaderPage() {
     );
   }
 
-  const { leader, state, scores, copies, recentDecisions } = detail.data;
+  const { leader, state, scores, copies, recentDecisions, copyGaps } =
+    detail.data;
   const latest = leader.latestScore;
   const openCopies = copies.filter((copy) => copy.isOpen);
   const closedCopies = copies.filter((copy) => !copy.isOpen);
@@ -457,6 +459,20 @@ export function LeaderPage() {
               </TableScroll>
             )}
           </div>
+        )}
+      </Panel>
+
+      <Panel
+        className="mt-4"
+        title="Copy gap"
+        description="Our PnL after fees and funding against k times the leader’s PnL over the same episode"
+      >
+        {copyGaps.length === 0 ? (
+          <EmptyNote>
+            The gap is measured once a copy of this leader has closed.
+          </EmptyNote>
+        ) : (
+          <CopyGap gaps={copyGaps} />
         )}
       </Panel>
 

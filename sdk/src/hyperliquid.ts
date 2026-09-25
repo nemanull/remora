@@ -232,6 +232,35 @@ export type PerpAssetContext = {
 
 export type MetaAndAssetCtxs = [meta: PerpMeta, contexts: PerpAssetContext[]];
 
+export type CandleInterval =
+  | '1m'
+  | '3m'
+  | '5m'
+  | '15m'
+  | '30m'
+  | '1h'
+  | '2h'
+  | '4h'
+  | '8h'
+  | '12h'
+  | '1d'
+  | '3d'
+  | '1w'
+  | '1M';
+
+export type Candle = {
+  t: number;
+  T: number;
+  s: string;
+  i: CandleInterval;
+  o: DecimalString;
+  c: DecimalString;
+  h: DecimalString;
+  l: DecimalString;
+  v: DecimalString;
+  n: number;
+};
+
 export type FundingHistoryItem = {
   coin: string;
   fundingRate: DecimalString;

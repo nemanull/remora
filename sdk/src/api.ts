@@ -276,6 +276,22 @@ export type CopyPositionsResponse = {
   closed: CopyPositionResponse[];
 };
 
+export type CopyGapResponse = {
+  positionId: string;
+  book: BookName;
+  coin: string;
+  closedAt: string;
+  isLeaderEpisodeClosed: boolean;
+  copyPnl: string;
+  scaledLeaderPnl: string;
+  totalGap: string;
+  entryDrift: string;
+  exitDrift: string;
+  feeDifference: string;
+  funding: string;
+  residual: string;
+};
+
 export type LeaderDetailResponse = {
   leader: LeaderResponse;
   state: LeaderStateResponse | null;
@@ -283,6 +299,7 @@ export type LeaderDetailResponse = {
   copies: CopyPositionResponse[];
   recentFills: LeaderFillResponse[];
   recentDecisions: DecisionResponse[];
+  copyGaps: CopyGapResponse[];
 };
 
 export type BookEquityPointResponse = {

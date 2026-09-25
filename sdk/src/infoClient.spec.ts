@@ -94,6 +94,14 @@ describe('HyperliquidInfoClient', () => {
     expect(events).toEqual(['take 20', 'fetch fundingHistory', 'charge 1']);
   });
 
+  it('charges one extra weight per 60 candles', async () => {
+    answerWith(Array.from({ length: 130 }, () => ({})));
+
+    await client.candleSnapshot('BTC', '15m', 0, 1);
+
+    expect(events).toEqual(['take 20', 'fetch candleSnapshot', 'charge 2']);
+  });
+
   it('charges the ledger updates like fills', async () => {
     answerWith(Array.from({ length: 45 }, () => ({})));
 

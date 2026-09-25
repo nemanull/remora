@@ -16,6 +16,7 @@
     "prestart:dev": "pnpm --filter @remora/sdk build && prisma generate",
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
+    "replay": "node dist/replay/replay.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit",
     "test": "vitest run",

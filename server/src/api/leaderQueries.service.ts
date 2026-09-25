@@ -10,6 +10,7 @@ import type { Wallet, WalletScore } from '../generated/prisma/client';
 import type { LeaderEvidence } from '../leaders/leaderSelection';
 import { LeadersService } from '../leaders/leaders.service';
 import { PrismaService } from '../prisma/prisma.service';
+import { CopyGapsService } from './copyGaps.service';
 import {
   toCopyPositionResponse,
   toDecisionResponse,
@@ -72,6 +73,7 @@ export class LeaderQueriesService {
     private readonly prisma: PrismaService,
     private readonly leaders: LeadersService,
     private readonly bookState: BookStateService,
+    private readonly copyGaps: CopyGapsService,
   ) {}
 
   async listLeaders(
@@ -118,7 +120,7 @@ export class LeaderQueriesService {
     if (wallet === null) {
       return null;
     }
-    const [[leader], state, scores, copies, fills, decisions] =
+    const [[leader], state, scores, copies, fills, decisions, copyGaps] =
       await Promise.all([
         this.describeLeaders([wallet]),
         this.prisma.leaderState.findUnique({
@@ -145,6 +147,7 @@ export class LeaderQueriesService {
           take: RECENT_DECISIONS_LIMIT,
           include: { orders: { orderBy: { id: 'asc' } } },
         }),
+        this.copyGaps.readCopyGaps(address),
       ]);
     return {
       leader,
@@ -155,6 +158,7 @@ export class LeaderQueriesService {
       ),
       recentFills: fills.map(toLeaderFillResponse),
       recentDecisions: decisions.map(toDecisionResponse),
+      copyGaps,
     };
   }
 

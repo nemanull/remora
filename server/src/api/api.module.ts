@@ -3,6 +3,7 @@ import { BooksModule } from '../books/books.module';
 import { LeadersModule } from '../leaders/leaders.module';
 import { BooksController } from './books.controller';
 import { ClustersController } from './clusters.controller';
+import { CopyGapsService } from './copyGaps.service';
 import { DecisionsController } from './decisions.controller';
 import { DiscoveryController } from './discovery.controller';
 import { EventsController } from './events.controller';
@@ -23,6 +24,6 @@ import { OverviewController } from './overview.controller';
     DiscoveryController,
     EventsController,
   ],
-  providers: [LeaderQueriesService],
+  providers: [LeaderQueriesService, CopyGapsService],
 })
 export class ApiModule {}

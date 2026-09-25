@@ -3,6 +3,7 @@ import { ConfigModule } from '@nestjs/config';
 import { Test } from '@nestjs/testing';
 import type {
   DecisionsPageResponse,
+  LeaderDetailResponse,
   LeaderResponse,
   OverviewResponse,
   ScoreComponent,
@@ -535,6 +536,37 @@ describe('the dashboard API', () => {
         (decision) => decision.walletAddress,
       ),
     ).toEqual([SHADOW_LEADER]);
+  });
+
+  it('splits the gap of a closed copy into parts that add up', async () => {
+    const response = await request(server)
+      .get(`/api/leaders/${LIVE_LEADER.toUpperCase().replace('0X', '0x')}`)
+      .expect(200);
+    const detail = response.body as LeaderDetailResponse;
+
+    expect(detail.copyGaps).toEqual([
+      {
+        positionId: expect.any(String) as string,
+        book: 'MAIN',
+        coin: 'ETH',
+        closedAt: minutesAfterStart(91).toISOString(),
+        isLeaderEpisodeClosed: true,
+        copyPnl: '24.094295',
+        scaledLeaderPnl: '24.714250',
+        totalGap: '-0.619955',
+        entryDrift: '-0.200000',
+        exitDrift: '-0.300000',
+        feeDifference: '0.000045',
+        funding: '-0.120000',
+        residual: '0.000000',
+      },
+    ]);
+    expect(detail.scores.map((score) => score.runId)).toEqual([
+      'run-20260408T0200Z',
+      'run-20260409T0200Z',
+    ]);
+    expect(detail.recentFills).toHaveLength(4);
+    expect(detail.recentDecisions).toHaveLength(3);
   });
 
   it('answers 404 for a wallet nobody registered', async () => {

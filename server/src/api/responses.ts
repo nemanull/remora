@@ -4,6 +4,7 @@ import type {
   ClusterResponse,
   ClusterWalletResponse,
   CollectorStats,
+  CopyGapResponse,
   CopyPositionResponse,
   CopyResultsResponse,
   DecisionReason,
@@ -21,6 +22,7 @@ import type {
 } from '@remora/sdk';
 import type { Decimal } from 'decimal.js';
 import type { BookSummary } from '../books/bookState.service';
+import type { CopyGap } from '../books/copyGap';
 import type { CopyEvent } from '../copy/copyEvents';
 import type {
   BookSnapshot,
@@ -277,6 +279,28 @@ export function toCopyPositionResponse(
     feesUsd: formatDecimal(position.feesUsd),
     fundingUsd: formatDecimal(position.fundingUsd),
     leaderOpenTid: position.leaderOpenTid.toString(),
+  };
+}
+
+export function toCopyGapResponse(
+  position: Pick<CopyPosition, 'id' | 'book' | 'coin'> & { closedAt: Date },
+  gap: CopyGap,
+  isLeaderEpisodeClosed: boolean,
+): CopyGapResponse {
+  return {
+    positionId: position.id.toString(),
+    book: position.book,
+    coin: position.coin,
+    closedAt: formatDate(position.closedAt),
+    isLeaderEpisodeClosed,
+    copyPnl: gap.copyPnl.toFixed(6),
+    scaledLeaderPnl: gap.scaledLeaderPnl.toFixed(6),
+    totalGap: gap.totalGap.toFixed(6),
+    entryDrift: gap.entryDrift.toFixed(6),
+    exitDrift: gap.exitDrift.toFixed(6),
+    feeDifference: gap.feeDifference.toFixed(6),
+    funding: gap.funding.toFixed(6),
+    residual: gap.residual.toFixed(6),
   };
 }
 

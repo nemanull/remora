@@ -1,4 +1,6 @@
 import type {
+  Candle,
+  CandleInterval,
   FundingHistoryItem,
   HyperliquidClearinghouseState,
   HyperliquidFill,
@@ -16,6 +18,7 @@ const LIGHT_WEIGHT = 2;
 const STANDARD_WEIGHT = 20;
 const USER_ROLE_WEIGHT = 60;
 const ITEMS_PER_EXTRA_WEIGHT = 20;
+const CANDLES_PER_EXTRA_WEIGHT = 60;
 const RATE_LIMIT_PAUSE_MS = 60_000;
 const REQUEST_TIMEOUT_MS = 15_000;
 
@@ -79,6 +82,19 @@ export class HyperliquidInfoClient {
 
   metaAndAssetCtxs(): Promise<MetaAndAssetCtxs> {
     return this.post({ type: 'metaAndAssetCtxs' }, STANDARD_WEIGHT);
+  }
+
+  candleSnapshot(
+    coin: string,
+    interval: CandleInterval,
+    startTime: number,
+    endTime: number,
+  ): Promise<Candle[]> {
+    return this.post(
+      { type: 'candleSnapshot', req: { coin, interval, startTime, endTime } },
+      STANDARD_WEIGHT,
+      CANDLES_PER_EXTRA_WEIGHT,
+    );
   }
 
   fundingHistory(
