@@ -4,6 +4,7 @@ packages:
   - detection-cluster
   - wallet-finder
   - dashboard
+  - hyperliquid-sim
 
 resolutionMode: time-based
 

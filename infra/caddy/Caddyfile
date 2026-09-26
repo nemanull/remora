@@ -1,0 +1,12 @@
+{$SITE_ADDRESS} {
+	handle /api/* {
+		reverse_proxy core:3000
+	}
+
+	handle {
+		root * /srv/dashboard
+		try_files {path} /index.html
+		encode zstd gzip
+		file_server
+	}
+}

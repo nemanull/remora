@@ -1,5 +1,35 @@
 name: remora
 
+x-app: &app
+  profiles: [app]
+  init: true
+  restart: unless-stopped
+
+x-node-healthcheck: &node-healthcheck
+  test:
+    [
+      CMD,
+      node,
+      -e,
+      "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+    ]
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 20s
+
+x-collector: &collector
+  <<: *app
+  build:
+    context: .
+    target: collector
+    network: host
+  image: remora-collector
+  healthcheck: *node-healthcheck
+  depends_on:
+    core:
+      condition: service_healthy
+
 services:
   postgres:
     image: postgres:18.4
@@ -31,6 +61,99 @@ services:
       timeout: 3s
       retries: 10
     restart: unless-stopped
+
+  migrate:
+    profiles: [app]
+    build:
+      context: .
+      target: server
+      network: host
+    image: remora-server
+    command: [npm, run, prisma:migrateDeploy]
+    environment:
+      DATABASE_URL: postgresql://remora:remora@postgres:5432/remora
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  core:
+    <<: *app
+    build:
+      context: .
+      target: server
+      network: host
+    image: remora-server
+    environment:
+      DATABASE_URL: postgresql://remora:remora@postgres:5432/remora
+      REDIS_URL: redis://redis:6379
+      HOST: 0.0.0.0
+      PORT: 3000
+      EXECUTION_MODE: paper
+      HYPERLIQUID_WEIGHT_PER_MINUTE: 300
+      CLUSTER_TOKEN_HASHES: ${CLUSTER_TOKEN_HASHES:-1:e3e0e828cd93b94a21a8874d32bc1f42bde5ca0fb931417503e59f3d06b9686f,2:7874c5143b26e38857702788650c772063680633a04e933d80ec4b4717b07b57}
+      SELECTION_STREAK_RUNS: ${SELECTION_STREAK_RUNS:-1}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+    ports:
+      - 127.0.0.1:3000:3000
+    healthcheck: *node-healthcheck
+    depends_on:
+      migrate:
+        condition: service_completed_successfully
+      redis:
+        condition: service_healthy
+
+  wallet-finder:
+    <<: *app
+    build:
+      context: .
+      target: wallet-finder
+      network: host
+    image: remora-wallet-finder
+    environment:
+      REDIS_URL: redis://redis:6379
+      HOST: 0.0.0.0
+      PORT: 3020
+      HYPERLIQUID_WEIGHT_PER_MINUTE: 500
+      STAGE_ONE_LIMIT: ${STAGE_ONE_LIMIT-200}
+    ports:
+      - 127.0.0.1:3020:3020
+    healthcheck: *node-healthcheck
+    depends_on:
+      redis:
+        condition: service_healthy
+
+  collector:
+    <<: *collector
+    environment:
+      CLUSTER_ID: 1
+      CLUSTER_TOKEN: ${CLUSTER_TOKEN_1:-db785e22e25bedd6f0e18a81471c3b214b67609b4fe7d1a5d9757f182e4b4322}
+      CORE_URL: ws://core:3000/cluster
+      MAX_WALLETS: 8
+      HYPERLIQUID_WEIGHT_PER_MINUTE: 300
+      HOST: 0.0.0.0
+      PORT: 3010
+    ports:
+      - 127.0.0.1:3010:3010
+
+  dashboard:
+    <<: *app
+    build:
+      context: .
+      target: web
+      network: host
+    image: remora-web
+    environment:
+      SITE_ADDRESS: ':8080'
+    ports:
+      - 127.0.0.1:${DASHBOARD_PORT:-8080}:8080
+    healthcheck:
+      test: [CMD, wget, -q, --spider, http://127.0.0.1:8080/]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+    depends_on:
+      - core
 
 volumes:
   postgres-data:

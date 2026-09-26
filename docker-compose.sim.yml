@@ -1,0 +1,52 @@
+services:
+  hyperliquid-sim:
+    profiles: [app]
+    init: true
+    restart: unless-stopped
+    build:
+      context: .
+      target: hyperliquid-sim
+      network: host
+    image: remora-hyperliquid-sim
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3030
+      SIM_SEED: ${SIM_SEED:-1}
+      SIM_WALLETS: ${SIM_WALLETS:-300}
+      SIM_SPEED: ${SIM_SPEED:-1}
+      SIM_REST_LAG_MS: ${SIM_REST_LAG_MS:-0}
+    ports:
+      - 127.0.0.1:3030:3030
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s
+
+  core:
+    environment:
+      HYPERLIQUID_WS_URL: ws://hyperliquid-sim:3030/ws
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
+    depends_on:
+      hyperliquid-sim:
+        condition: service_healthy
+
+  wallet-finder:
+    environment:
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
+      STATS_DATA_URL: http://hyperliquid-sim:3030/stats/Mainnet
+    depends_on:
+      hyperliquid-sim:
+        condition: service_healthy
+
+  collector:
+    environment:
+      HYPERLIQUID_WS_URL: ws://hyperliquid-sim:3030/ws
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
