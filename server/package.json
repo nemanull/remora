@@ -17,6 +17,7 @@
     "start:dev": "nest start --watch",
     "start:prod": "node dist/main.js",
     "replay": "node dist/replay/replay.js",
+    "testnet:smoke": "node dist/scripts/testnetSmoke.js",
     "paper:report": "node dist/scripts/paperReport.js",
     "lint": "eslint \"{src,test}/**/*.ts\"",
     "typecheck": "tsc --noEmit",

@@ -8,8 +8,10 @@ import type { ServerConfig } from '../config';
 import { HyperliquidModule } from '../hyperliquid/hyperliquid.module';
 import { MarketDataService } from '../market/marketData.service';
 import { MarketModule } from '../market/market.module';
+import { AccountStreamService } from './accountStream.service';
 import { ExecutionService, LIVE_EXECUTOR } from './execution.service';
 import { LiveExecutor, readAgentKey } from './liveExecutor';
+import { OrderRecoveryService } from './orderRecovery.service';
 import { OrdersService } from './orders.service';
 import { PaperBookReader } from './paperBookReader';
 import { PaperExecutor } from './paperExecutor';
@@ -70,6 +72,8 @@ async function createLiveExecutor(
     },
     OrdersService,
     ExecutionService,
+    OrderRecoveryService,
+    AccountStreamService,
   ],
   exports: [ExecutionService, OrdersService, PaperExecutor, LIVE_EXECUTOR],
 })
