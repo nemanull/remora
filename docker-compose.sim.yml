@@ -50,3 +50,8 @@ services:
     environment:
       HYPERLIQUID_WS_URL: ws://hyperliquid-sim:3030/ws
       HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
+
+  collector-2:
+    environment:
+      HYPERLIQUID_WS_URL: ws://hyperliquid-sim:3030/ws
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030

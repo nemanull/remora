@@ -1,0 +1,30 @@
+{
+  "name": "scale-lab",
+  "version": "0.0.1",
+  "private": true,
+  "license": "UNLICENSED",
+  "scripts": {
+    "lint": "eslint \"{src,scenarios}/**/*.ts\"",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lab": "vitest run --config vitest.lab.config.ts",
+    "lab:baseline": "vitest run --config vitest.lab.config.ts scenarios/baseline.lab.ts",
+    "lab:scale": "vitest run --config vitest.lab.config.ts scenarios/scale.lab.ts",
+    "lab:collector-loss": "vitest run --config vitest.lab.config.ts scenarios/collectorLoss.lab.ts",
+    "lab:core-restart": "vitest run --config vitest.lab.config.ts scenarios/coreRestart.lab.ts",
+    "lab:upstream-storm": "vitest run --config vitest.lab.config.ts scenarios/upstreamStorm.lab.ts",
+    "lab:database-outage": "vitest run --config vitest.lab.config.ts scenarios/databaseOutage.lab.ts",
+    "lab:user-limit": "vitest run --config vitest.lab.config.ts scenarios/userLimit.lab.ts",
+    "lab:discovery": "vitest run --config vitest.lab.config.ts scenarios/discovery.lab.ts"
+  },
+  "devDependencies": {
+    "@remora/sdk": "workspace:*",
+    "@types/node": "24.12.4",
+    "@types/pg": "8.20.0",
+    "decimal.js": "10.6.0",
+    "pg": "8.20.0",
+    "testcontainers": "11.14.0",
+    "typescript": "5.9.3",
+    "vitest": "4.1.6"
+  }
+}

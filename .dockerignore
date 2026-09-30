@@ -11,3 +11,4 @@ reports
 payloads
 infra/*
 !infra/caddy
+scale-lab/logs

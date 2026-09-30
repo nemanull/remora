@@ -31,6 +31,14 @@ describe('MetricsService', () => {
     expect(names).toEqual(expect.arrayContaining(EXPECTED_METRICS));
   });
 
+  it('exposes the event loop delay for the scale lab', async () => {
+    const metrics = new MetricsService();
+
+    expect(await metrics.registry.metrics()).toContain(
+      'nodejs_eventloop_lag_p99_seconds',
+    );
+  });
+
   it('keeps each instance on its own registry', async () => {
     const first = new MetricsService();
     const second = new MetricsService();

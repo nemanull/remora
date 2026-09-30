@@ -1,0 +1,12 @@
+services:
+  core:
+    environment:
+      TRACKED_TARGET: 4
+
+  collector:
+    environment:
+      MAX_WALLETS: 4
+      HYPERLIQUID_WEIGHT_PER_MINUTE: 150
+
+  collector-2:
+    profiles: [app]

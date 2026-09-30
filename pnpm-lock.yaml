@@ -201,6 +201,33 @@ importers:
         specifier: 4.1.6
         version: 4.1.6(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.13(@types/node@24.12.4)(jiti@2.7.0)(terser@5.47.1)(yaml@2.9.0))
 
+  scale-lab:
+    devDependencies:
+      '@remora/sdk':
+        specifier: workspace:*
+        version: link:../sdk
+      '@types/node':
+        specifier: 24.12.4
+        version: 24.12.4
+      '@types/pg':
+        specifier: 8.20.0
+        version: 8.20.0
+      decimal.js:
+        specifier: 10.6.0
+        version: 10.6.0
+      pg:
+        specifier: 8.20.0
+        version: 8.20.0
+      testcontainers:
+        specifier: 11.14.0
+        version: 11.14.0
+      typescript:
+        specifier: 5.9.3
+        version: 5.9.3
+      vitest:
+        specifier: 4.1.6
+        version: 4.1.6(@opentelemetry/api@1.9.1)(@types/node@24.12.4)(@vitest/coverage-v8@4.1.6)(vite@8.0.13(@types/node@24.12.4)(jiti@2.7.0)(terser@5.47.1)(yaml@2.9.0))
+
   sdk:
     dependencies:
       ws:

@@ -136,6 +136,20 @@ services:
     ports:
       - 127.0.0.1:3010:3010
 
+  collector-2:
+    <<: *collector
+    profiles: [failover]
+    environment:
+      CLUSTER_ID: 2
+      CLUSTER_TOKEN: ${CLUSTER_TOKEN_2:-f6435751d309c90018c2922d5e6860b10c1992ca1a6879da30e0cf8eb7f17e06}
+      CORE_URL: ws://core:3000/cluster
+      MAX_WALLETS: 4
+      HYPERLIQUID_WEIGHT_PER_MINUTE: 150
+      HOST: 0.0.0.0
+      PORT: 3010
+    ports:
+      - 127.0.0.1:3011:3010
+
   dashboard:
     <<: *app
     build:

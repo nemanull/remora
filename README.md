@@ -44,6 +44,7 @@ flowchart LR
 | `dashboard/` | a Vite and React app for leaders, decisions, copies and collectors, fed by the API and a server-sent event stream |
 | `sdk/` | the Hyperliquid types, the info client, the socket, the weight budget and the cluster protocol shared by every service |
 | `hyperliquid-sim/` | a stand-in for the part of the Hyperliquid API the system uses, which enforces the per-IP limits and knows the true answer to every fill |
+| `scale-lab/` | system tests that run the real images against the simulator at scale and through failures |
 
 Hyperliquid limits each IP to 10 users across user-specific subscriptions, 10 sockets and 1,200 REST weight a minute.
 The collectors are the only part those limits force onto separate machines.
@@ -96,6 +97,9 @@ wallet-finder scores the simulator's 300 synthetic wallets, and selection moves 
 The collector subscribes them, and paper copies open, resize and close as they trade.
 `SIM_SPEED` makes the synthetic wallets trade that many times more often, so copies show up every few minutes.
 
+`docker compose -f docker-compose.yml -f docker-compose.sim.yml -f docker-compose.failover.yml --profile app up -d` adds a second collector and sets both to 4 wallets.
+Stopping the first one moves its wallets to the second after a 30 s grace period.
+
 ### The whole system against Hyperliquid
 
 ```sh
@@ -136,6 +140,8 @@ pnpm -r run test:integration
 ```
 
 The integration specs start their own Postgres and Redis through Testcontainers, so they need Docker.
+`pnpm --filter scale-lab lab` builds the images from the compose files, then runs every scale-lab scenario.
+`pnpm --filter scale-lab lab:baseline` runs the baseline scenario alone.
 
 ### Replay
 
