@@ -1,0 +1,23 @@
+all:
+  vars:
+    ansible_user: deploy
+    core_domain: core.incus
+    tls_mode: internal
+    run_simulator: true
+    ansible_ssh_common_args: -o ProxyJump=admin@192.168.1.20
+  children:
+    core:
+      hosts:
+        core.incus:
+          ansible_host: 10.94.17.10
+    collectors:
+      hosts:
+        collector-1:
+          ansible_host: 10.94.17.11
+          cluster_id: 1
+        collector-2:
+          ansible_host: 10.94.17.12
+          cluster_id: 2
+        collector-3:
+          ansible_host: 10.94.17.13
+          cluster_id: 3

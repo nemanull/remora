@@ -1,0 +1,8 @@
+---
+- name: Deploy collectors one host at a time
+  hosts: collectors
+  serial: 1
+  max_fail_percentage: 0
+  become: true
+  roles:
+    - collector

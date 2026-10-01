@@ -1,0 +1,19 @@
+---
+core_acme_email: ""
+core_dashboard_user: admin
+core_execution_mode: paper
+core_hyperliquid_network: mainnet
+core_hyperliquid_account_address: ""
+core_weight_per_minute: 400
+core_wallet_finder_weight_per_minute: 600
+core_tracked_target: 16
+core_selection_streak_runs: 3
+core_max_live_leaders: 4
+core_discovery_cron: "0 2 * * *"
+core_paper_equity_usd: 25000
+core_live_allocation_usd: 5000
+core_shadow_allocation_usd: 5000
+core_monitoring_enabled: true
+core_simulator_seed: 1
+core_simulator_wallets: 300
+core_simulator_speed: 1

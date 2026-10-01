@@ -1,0 +1,41 @@
+name: remora
+
+services:
+  collector:
+    image: {{ image_registry }}/remora-collector:{{ image_tag }}
+    init: true
+    restart: unless-stopped
+    environment:
+      CLUSTER_ID: ${CLUSTER_ID:?}
+      CLUSTER_TOKEN: ${CLUSTER_TOKEN:?}
+      CORE_URL: wss://{{ core_domain }}/cluster
+      MAX_WALLETS: {{ collector_max_wallets }}
+{% if run_simulator %}
+      HYPERLIQUID_WS_URL: ws://{{ core_domain }}:3030/ws
+      HYPERLIQUID_API_URL: http://{{ core_domain }}:3030
+{% endif %}
+      HYPERLIQUID_WEIGHT_PER_MINUTE: {{ collector_weight_per_minute }}
+      PORTFOLIO_POLL_MS: {{ collector_portfolio_poll_ms }}
+{% if tls_mode == 'internal' %}
+      NODE_EXTRA_CA_CERTS: /etc/remora/caddy-root.crt
+{% endif %}
+      HOST: 0.0.0.0
+      PORT: 3010
+{% if tls_mode == 'internal' %}
+    volumes:
+      - ./caddy-root.crt:/etc/remora/caddy-root.crt:ro
+{% endif %}
+    ports:
+      - 127.0.0.1:3010:3010
+    healthcheck:
+      test:
+        [
+          CMD,
+          node,
+          -e,
+          "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+        ]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 20s

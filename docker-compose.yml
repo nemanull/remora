@@ -169,6 +169,46 @@ services:
     depends_on:
       - core
 
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    profiles: [monitoring]
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=15d
+    volumes:
+      - ./infra/monitoring/prometheus.yml:/etc/prometheus/prometheus.yml:ro
+      - prometheus-data:/prometheus
+    ports:
+      - 127.0.0.1:9090:9090
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.4.3
+    profiles: [monitoring]
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:-admin}
+    volumes:
+      - ./infra/monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./infra/monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - 127.0.0.1:3001:3000
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    profiles: [monitoring]
+    command: [--path.rootfs=/host]
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+
 volumes:
   postgres-data:
   redis-data:
+  prometheus-data:
+  grafana-data:

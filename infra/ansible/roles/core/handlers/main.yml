@@ -1,0 +1,19 @@
+---
+- name: Reload caddy
+  community.docker.docker_compose_v2_exec:
+    project_src: "{{ project_dir }}"
+    service: web
+    argv: [caddy, reload, --config, /etc/caddy/Caddyfile]
+    tty: false
+
+- name: Restart prometheus
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    services: [prometheus]
+    state: restarted
+
+- name: Restart grafana
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    services: [grafana]
+    state: restarted

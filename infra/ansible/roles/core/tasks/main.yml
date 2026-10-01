@@ -1,0 +1,168 @@
+---
+- name: Check the deploy inputs
+  ansible.builtin.assert:
+    that:
+      - image_tag is defined and image_tag | length > 0
+      - tls_mode in ['acme', 'internal']
+      - tls_mode == 'internal' or core_acme_email | length > 0
+      - core_execution_mode in ['paper', 'live']
+      - not run_simulator or core_execution_mode == 'paper'
+      - postgres_password is match('^[A-Za-z0-9_-]{16,}$')
+      - redis_password is match('^[A-Za-z0-9_-]{16,}$')
+      - dashboard_password_hash is match('^\$2[aby]\$')
+      - grafana_admin_password | length > 0 or not core_monitoring_enabled
+      - (telegram_bot_token ~ telegram_chat_id ~ grafana_admin_password) is not search("'")
+      - cluster_tokens | length > 0
+      - cluster_tokens.values() | map('string') | map('length') | min >= 32
+      - groups['collectors'] | map('extract', hostvars, 'cluster_id') | difference(cluster_tokens.keys() | list) | length == 0
+    fail_msg: Set image_tag, the inventory variables and every secret of group_vars/all/vault.example.yml before deploying the core.
+    quiet: true
+
+- name: Check the live trading inputs
+  ansible.builtin.assert:
+    that:
+      - core_hyperliquid_account_address is match('^0x[0-9a-fA-F]{40}$')
+      - hyperliquid_agent_key | length > 0
+    fail_msg: Live mode needs core_hyperliquid_account_address and vault_hyperliquid_agent_key.
+    quiet: true
+  when: core_execution_mode == 'live'
+
+- name: Create the project directories
+  ansible.builtin.file:
+    path: "{{ project_dir }}/{{ item }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+  loop:
+    - ""
+    - caddy
+    - caddy-data
+    - monitoring/prometheus
+    - monitoring/grafana
+
+- name: Create the secrets directory
+  ansible.builtin.file:
+    path: "{{ project_dir }}/secrets"
+    state: directory
+    owner: root
+    group: root
+    mode: "0711"
+
+- name: Write the agent key
+  ansible.builtin.copy:
+    content: "{{ hyperliquid_agent_key }}"
+    dest: "{{ project_dir }}/secrets/hyperliquid_agent_key"
+    owner: "1000"
+    group: "1000"
+    mode: "0400"
+  no_log: true
+  when: core_execution_mode == 'live'
+
+- name: Remove the agent key outside live mode
+  ansible.builtin.file:
+    path: "{{ project_dir }}/secrets/hyperliquid_agent_key"
+    state: absent
+  when: core_execution_mode != 'live'
+
+- name: Render the compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ project_dir }}/compose.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Render the compose environment
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ project_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Render the Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ project_dir }}/caddy/Caddyfile"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload caddy
+
+- name: Copy the Prometheus configuration
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/prometheus.yml"
+    dest: "{{ project_dir }}/monitoring/prometheus/prometheus.yml"
+    owner: root
+    group: root
+    mode: "0644"
+  notify: Restart prometheus
+  when: core_monitoring_enabled
+
+- name: Copy the Grafana provisioning and dashboard
+  ansible.builtin.copy:
+    src: "{{ playbook_dir }}/../monitoring/grafana/{{ item }}/"
+    dest: "{{ project_dir }}/monitoring/grafana/{{ item }}/"
+    owner: root
+    group: root
+    mode: u=rwX,g=rX,o=rX
+    directory_mode: "0755"
+  loop:
+    - provisioning
+    - dashboards
+  notify: Restart grafana
+  when: core_monitoring_enabled
+
+- name: Log in to the image registry
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ ghcr_username }}"
+    password: "{{ ghcr_token }}"
+  no_log: true
+  when: ghcr_token | length > 0
+
+- name: Pull the images of this release
+  community.docker.docker_compose_v2_pull:
+    project_src: "{{ project_dir }}"
+
+- name: Start Postgres and Redis
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    services: [postgres, redis]
+    state: present
+    wait: true
+    wait_timeout: 120
+
+- name: Apply database migrations
+  community.docker.docker_compose_v2_run:
+    project_src: "{{ project_dir }}"
+    profiles: [migrate]
+    service: migrate
+    cleanup: true
+    tty: false
+  register: core_migration
+  changed_when: "'No pending migrations' not in core_migration.stdout"
+  failed_when: core_migration.rc != 0
+
+- name: Start the stack
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    state: present
+    remove_orphans: true
+
+- name: Wait for the core to answer its health check
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3000/health
+    status_code: 200
+  register: core_health
+  until: core_health.status == 200
+  retries: 30
+  delay: 5
+
+- name: Wait for Caddy's internal certificate authority
+  ansible.builtin.wait_for:
+    path: "{{ project_dir }}/caddy-data/caddy/pki/authorities/local/root.crt"
+    timeout: 60
+  when: tls_mode == 'internal'

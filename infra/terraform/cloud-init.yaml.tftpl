@@ -1,0 +1,15 @@
+#cloud-config
+users:
+  - name: ${admin_user}
+    groups: [sudo]
+    shell: /bin/bash
+    sudo: "ALL=(ALL) NOPASSWD:ALL"
+    lock_passwd: true
+    ssh_authorized_keys:
+      - ${ssh_public_key}
+ssh_pwauth: false
+disable_root: true
+package_update: true
+packages:
+  - openssh-server
+  - python3

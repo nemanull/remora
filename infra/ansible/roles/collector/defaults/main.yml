@@ -1,0 +1,4 @@
+---
+collector_max_wallets: 8
+collector_weight_per_minute: 900
+collector_portfolio_poll_ms: 600000

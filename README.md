@@ -45,6 +45,7 @@ flowchart LR
 | `sdk/` | the Hyperliquid types, the info client, the socket, the weight budget and the cluster protocol shared by every service |
 | `hyperliquid-sim/` | a stand-in for the part of the Hyperliquid API the system uses, which enforces the per-IP limits and knows the true answer to every fill |
 | `scale-lab/` | system tests that run the real images against the simulator at scale and through failures |
+| `infra/` | Terraform for production on Vultr and staging on Incus, Ansible roles, Caddy, Prometheus and Grafana |
 
 Hyperliquid limits each IP to 10 users across user-specific subscriptions, 10 sockets and 1,200 REST weight a minute.
 The collectors are the only part those limits force onto separate machines.
@@ -99,6 +100,7 @@ The collector subscribes them, and paper copies open, resize and close as they t
 
 `docker compose -f docker-compose.yml -f docker-compose.sim.yml -f docker-compose.failover.yml --profile app up -d` adds a second collector and sets both to 4 wallets.
 Stopping the first one moves its wallets to the second after a 30 s grace period.
+`docker compose --profile monitoring up -d` adds Prometheus on http://127.0.0.1:9090 and Grafana on http://127.0.0.1:3001 with a provisioned dashboard.
 
 ### The whole system against Hyperliquid
 
@@ -153,3 +155,55 @@ The replay reads a leader's last 30 days of fills, candles and funding and runs 
 It writes `reports/replay-<wallet>-<date>.md` and `.json` under the directory it runs in, with every number labelled as a replay of its window.
 It reads the server's configuration, so it runs with `server/.env` in place.
 It calls the info endpoint that `HYPERLIQUID_API_URL` names, which can be the simulator.
+
+## Deploying
+
+Production is one core and one collector per public IPv4 on Vultr in Tokyo, the closest region to Hyperliquid's API.
+
+1. Copy `infra/terraform/production/terraform.tfvars.example` to `terraform.tfvars`, set the admin CIDRs, the SSH key, the domain and the `collectors` map, and export `VULTR_API_KEY`.
+2. `make infra-apply` creates the hosts, the firewall groups and the DNS record, and `make inventory` writes the Ansible inventory.
+3. Back up `infra/terraform/production/terraform.tfstate` after every apply, because the state is local and gitignored.
+4. Copy `infra/ansible/group_vars/all/vault.example.yml` to `vault.yml` next to it, fill in every value, encrypt it with `ansible-vault encrypt`, and keep the vault password in `~/.config/remora/vault-password`.
+5. Install the collections with `ansible-galaxy collection install -r infra/ansible/requirements.yml`, then run `make site` once per host.
+6. Push to `main` and let CI build and push the images to GHCR.
+   Then run `make deploy TAG=<full commit SHA>`, which deploys the core first and the collectors one at a time behind a health gate.
+
+Adding a collector means adding its token to the vault, redeploying the core, adding an entry to the `collectors` map, applying Terraform, regenerating the inventory, and running `make site` and `make deploy-collectors` for it.
+
+Staging uses the same playbooks on Incus system containers on a home server, with the simulator on the core and Caddy's internal certificate authority.
+After `incus admin init` and trusting the laptop, `make infra-apply ENV=staging`, `make inventory ENV=staging`, `make site ENV=staging` and `make deploy ENV=staging TAG=<sha>` bring it up.
+`make lab-home` runs the scale lab on the home server through `DOCKER_HOST`.
+
+## Live trading
+
+Paper mode is the default for both books, and the shadow book is always paper.
+The main book trades live only with `EXECUTION_MODE=live`, after the boot checks pass.
+
+1. Use a dedicated master account in standard abstraction.
+   Unified and portfolio-margin accounts report equity that the kill switch cannot read, and the server refuses to start live against them.
+2. Generate a fresh key for an API wallet, and approve it from the master account in the Hyperliquid app with a name of up to 16 characters and a `valid_until` at most 180 days ahead.
+3. Put the API wallet's private key into the vault as `vault_hyperliquid_agent_key`, set `core_execution_mode: live` and `core_hyperliquid_account_address`, and redeploy the core.
+4. Run the testnet smoke first, with a testnet account and agent: `HYPERLIQUID_NETWORK=testnet HYPERLIQUID_ACCOUNT_ADDRESS=0x... HYPERLIQUID_AGENT_KEY_FILE=./agent.key pnpm --filter server testnet:smoke`.
+   It checks the boot checks, signing, client order ids, expiry, exact closes and the stop lifecycle.
+   It writes its answers to `reports/testnet-smoke-<date>.json` under the directory it runs in.
+
+The API wallet can trade the account but cannot withdraw or transfer.
+The master key never reaches a server.
+To rotate it before its `valid_until`, approve a new API wallet with a new key and a new name, replace the vault entry, redeploy the core, and remove the old one in the app.
+Never approve an address again after it was removed, because its pruned nonces would let old signed actions replay.
+The live account must not receive transfers while it runs, because a transfer would read as profit or loss to the kill switch.
+In live mode a SHADOW leader becomes LIVE only through the dashboard's promote action, so real money never follows a leader nobody approved.
+
+## Limits and risks
+
+A self-run non-validating Hyperliquid node removes every per-IP limit and is the sanctioned path for watching many wallets.
+The price is a machine with 16 vCPU, 128 GB of RAM and 500 GB of SSD.
+remora takes the documented API path instead, which fits a few dozen tracked wallets on small collector VMs.
+
+Hyperliquid's terms of use forbid bots that get around rate limits on its interface, and forbid hiding a location behind VPNs or proxies.
+Whether several collectors on several IPs count as getting around the limits of the public API is not settled.
+Each collector is a plain client with its own fixed IP that never rotates or proxies.
+The system works with a single collector, and whether to run more than one is a decision for whoever deploys it.
+The terms also close the interface to persons in some jurisdictions, including the United States, so live trading stays off unless the operator is eligible.
+
+None of this is a claim that copying these leaders makes money.

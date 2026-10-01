@@ -1,0 +1,42 @@
+{% set collector_ips = groups['collectors'] | map('extract', hostvars, 'ansible_host') | list %}
+{% if tls_mode == 'acme' %}
+{
+	email {{ core_acme_email }}
+}
+
+{% endif %}
+{{ core_domain }} {
+{% if tls_mode == 'internal' %}
+	tls internal
+
+{% endif %}
+	@cluster path /cluster
+	handle @cluster {
+{% if collector_ips %}
+		@outsider not remote_ip {{ collector_ips | join(' ') }}
+		respond @outsider 403
+		reverse_proxy core:3000 {
+			stream_close_delay 5m
+		}
+{% else %}
+		respond 403
+{% endif %}
+	}
+
+	handle /api/* {
+		basic_auth {
+			{{ core_dashboard_user }} {{ dashboard_password_hash }}
+		}
+		reverse_proxy core:3000
+	}
+
+	handle {
+		basic_auth {
+			{{ core_dashboard_user }} {{ dashboard_password_hash }}
+		}
+		root * /srv/dashboard
+		try_files {path} /index.html
+		encode zstd gzip
+		file_server
+	}
+}

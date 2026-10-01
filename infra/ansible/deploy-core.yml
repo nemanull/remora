@@ -1,0 +1,6 @@
+---
+- name: Deploy the core
+  hosts: core
+  become: true
+  roles:
+    - core

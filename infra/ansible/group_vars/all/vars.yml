@@ -1,0 +1,15 @@
+---
+project_dir: /opt/remora
+image_registry: ghcr.io/nemanull
+ghcr_username: nemanull
+admin_ssh_public_key_file: ~/.ssh/id_ed25519.pub
+
+ghcr_token: "{{ vault_ghcr_token }}"
+cluster_tokens: "{{ vault_cluster_tokens }}"
+postgres_password: "{{ vault_postgres_password }}"
+redis_password: "{{ vault_redis_password }}"
+dashboard_password_hash: "{{ vault_dashboard_password_hash }}"
+grafana_admin_password: "{{ vault_grafana_admin_password }}"
+telegram_bot_token: "{{ vault_telegram_bot_token }}"
+telegram_chat_id: "{{ vault_telegram_chat_id }}"
+hyperliquid_agent_key: "{{ vault_hyperliquid_agent_key }}"

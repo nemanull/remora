@@ -1,0 +1,3 @@
+---
+collector_max_wallets: 8
+collector_weight_per_minute: 900

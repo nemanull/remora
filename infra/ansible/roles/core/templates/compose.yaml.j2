@@ -1,0 +1,208 @@
+name: remora
+
+x-node-healthcheck: &node-healthcheck
+  test:
+    [
+      CMD,
+      node,
+      -e,
+      "fetch('http://127.0.0.1:' + process.env.PORT + '/health').then((response) => process.exit(response.ok ? 0 : 1), () => process.exit(1))",
+    ]
+  interval: 10s
+  timeout: 5s
+  retries: 6
+  start_period: 20s
+
+x-server-environment: &server-environment
+  DATABASE_URL: postgresql://remora:${POSTGRES_PASSWORD:?}@postgres:5432/remora
+
+services:
+  postgres:
+    image: postgres:18.4
+    environment:
+      POSTGRES_USER: remora
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?}
+      POSTGRES_DB: remora
+    volumes:
+      - postgres-data:/var/lib/postgresql
+    healthcheck:
+      test: [CMD-SHELL, pg_isready -U remora -d remora]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  redis:
+    image: redis:8.6.3
+    command: [redis-server, --appendonly, 'yes', --maxmemory-policy, noeviction, --requirepass, '${REDIS_PASSWORD:?}']
+    environment:
+      REDISCLI_AUTH: ${REDIS_PASSWORD:?}
+    volumes:
+      - redis-data:/data
+    healthcheck:
+      test: [CMD, redis-cli, ping]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
+  migrate:
+    image: {{ image_registry }}/remora-server:{{ image_tag }}
+    profiles: [migrate]
+    command: [npm, run, prisma:migrateDeploy]
+    environment: *server-environment
+    depends_on:
+      postgres:
+        condition: service_healthy
+
+  core:
+    image: {{ image_registry }}/remora-server:{{ image_tag }}
+    init: true
+    restart: unless-stopped
+    environment:
+      <<: *server-environment
+      REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+      HOST: 0.0.0.0
+      PORT: 3000
+      EXECUTION_MODE: {{ core_execution_mode }}
+      HYPERLIQUID_NETWORK: {{ core_hyperliquid_network }}
+{% if run_simulator %}
+      HYPERLIQUID_WS_URL: ws://hyperliquid-sim:3030/ws
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
+{% endif %}
+      HYPERLIQUID_WEIGHT_PER_MINUTE: {{ core_weight_per_minute }}
+{% if core_execution_mode == 'live' %}
+      HYPERLIQUID_ACCOUNT_ADDRESS: '{{ core_hyperliquid_account_address | lower }}'
+      HYPERLIQUID_AGENT_KEY_FILE: /run/secrets/hyperliquid_agent_key
+{% endif %}
+      CLUSTER_TOKEN_HASHES: ${CLUSTER_TOKEN_HASHES:?}
+      TRACKED_TARGET: {{ core_tracked_target }}
+      SELECTION_STREAK_RUNS: {{ core_selection_streak_runs }}
+      MAX_LIVE_LEADERS: {{ core_max_live_leaders }}
+      DISCOVERY_CRON: '{{ core_discovery_cron }}'
+      PAPER_EQUITY_USD: {{ core_paper_equity_usd }}
+      LIVE_ALLOCATION_USD: {{ core_live_allocation_usd }}
+      SHADOW_ALLOCATION_USD: {{ core_shadow_allocation_usd }}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_CHAT_ID: ${TELEGRAM_CHAT_ID:-}
+{% if core_execution_mode == 'live' %}
+    secrets:
+      - hyperliquid_agent_key
+{% endif %}
+    ports:
+      - 127.0.0.1:3000:3000
+    healthcheck: *node-healthcheck
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+{% if run_simulator %}
+      hyperliquid-sim:
+        condition: service_healthy
+{% endif %}
+
+  wallet-finder:
+    image: {{ image_registry }}/remora-wallet-finder:{{ image_tag }}
+    init: true
+    restart: unless-stopped
+    environment:
+      REDIS_URL: redis://:${REDIS_PASSWORD:?}@redis:6379
+      HOST: 0.0.0.0
+      PORT: 3020
+{% if run_simulator %}
+      HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
+      STATS_DATA_URL: http://hyperliquid-sim:3030/stats/Mainnet
+{% endif %}
+      HYPERLIQUID_WEIGHT_PER_MINUTE: {{ core_wallet_finder_weight_per_minute }}
+    ports:
+      - 127.0.0.1:3020:3020
+    healthcheck: *node-healthcheck
+    depends_on:
+      redis:
+        condition: service_healthy
+{% if run_simulator %}
+      hyperliquid-sim:
+        condition: service_healthy
+{% endif %}
+
+  web:
+    image: {{ image_registry }}/remora-web:{{ image_tag }}
+    restart: unless-stopped
+    ports:
+      - 0.0.0.0:80:80
+      - 0.0.0.0:443:443
+    volumes:
+      - ./caddy:/etc/caddy:ro
+      - ./caddy-data:/data
+      - caddy-config:/config
+    depends_on:
+      - core
+{% if run_simulator %}
+
+  hyperliquid-sim:
+    image: {{ image_registry }}/remora-hyperliquid-sim:{{ image_tag }}
+    init: true
+    restart: unless-stopped
+    environment:
+      HOST: 0.0.0.0
+      PORT: 3030
+      SIM_SEED: {{ core_simulator_seed }}
+      SIM_WALLETS: {{ core_simulator_wallets }}
+      SIM_SPEED: {{ core_simulator_speed }}
+    ports:
+      - {{ ansible_host }}:3030:3030
+    healthcheck: *node-healthcheck
+{% endif %}
+{% if core_monitoring_enabled %}
+
+  prometheus:
+    image: prom/prometheus:v3.11.3
+    command:
+      - --config.file=/etc/prometheus/prometheus.yml
+      - --storage.tsdb.path=/prometheus
+      - --storage.tsdb.retention.time=30d
+    volumes:
+      - ./monitoring/prometheus:/etc/prometheus:ro
+      - prometheus-data:/prometheus
+    ports:
+      - 127.0.0.1:9090:9090
+    restart: unless-stopped
+
+  grafana:
+    image: grafana/grafana:12.4.3
+    environment:
+      GF_SECURITY_ADMIN_PASSWORD: ${GRAFANA_ADMIN_PASSWORD:?}
+    volumes:
+      - ./monitoring/grafana/provisioning:/etc/grafana/provisioning:ro
+      - ./monitoring/grafana/dashboards:/etc/grafana/dashboards:ro
+      - grafana-data:/var/lib/grafana
+    ports:
+      - 127.0.0.1:3001:3000
+    depends_on:
+      - prometheus
+    restart: unless-stopped
+
+  node-exporter:
+    image: prom/node-exporter:v1.11.1
+    command: [--path.rootfs=/host]
+    pid: host
+    volumes:
+      - /:/host:ro,rslave
+    restart: unless-stopped
+{% endif %}
+{% if core_execution_mode == 'live' %}
+
+secrets:
+  hyperliquid_agent_key:
+    file: ./secrets/hyperliquid_agent_key
+{% endif %}
+
+volumes:
+  postgres-data:
+  redis-data:
+  caddy-config:
+{% if core_monitoring_enabled %}
+  prometheus-data:
+  grafana-data:
+{% endif %}

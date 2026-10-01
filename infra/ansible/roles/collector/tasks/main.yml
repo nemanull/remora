@@ -1,0 +1,77 @@
+---
+- name: Check the deploy inputs
+  ansible.builtin.assert:
+    that:
+      - image_tag is defined and image_tag | length > 0
+      - cluster_id is defined
+      - cluster_id in cluster_tokens
+      - cluster_tokens[cluster_id] | string | length >= 32
+      - collector_max_wallets | int in range(1, 9)
+    fail_msg: Set image_tag, and give cluster {{ cluster_id | default('?') }} a token of at least 32 characters in the vault.
+    quiet: true
+
+- name: Create the project directory
+  ansible.builtin.file:
+    path: "{{ project_dir }}"
+    state: directory
+    owner: root
+    group: root
+    mode: "0755"
+
+- name: Read the root certificate of Caddy's internal authority from the core
+  ansible.builtin.slurp:
+    src: "{{ project_dir }}/caddy-data/caddy/pki/authorities/local/root.crt"
+  delegate_to: "{{ groups['core'][0] }}"
+  run_once: true
+  register: collector_caddy_root
+  when: tls_mode == 'internal'
+
+- name: Install the root certificate of Caddy's internal authority
+  ansible.builtin.copy:
+    content: "{{ collector_caddy_root.content | b64decode }}"
+    dest: "{{ project_dir }}/caddy-root.crt"
+    owner: root
+    group: root
+    mode: "0644"
+  when: tls_mode == 'internal'
+
+- name: Render the compose file
+  ansible.builtin.template:
+    src: compose.yaml.j2
+    dest: "{{ project_dir }}/compose.yaml"
+    owner: root
+    group: root
+    mode: "0644"
+
+- name: Render the compose environment
+  ansible.builtin.template:
+    src: env.j2
+    dest: "{{ project_dir }}/.env"
+    owner: root
+    group: root
+    mode: "0600"
+  no_log: true
+
+- name: Log in to the image registry
+  community.docker.docker_login:
+    registry_url: ghcr.io
+    username: "{{ ghcr_username }}"
+    password: "{{ ghcr_token }}"
+  no_log: true
+  when: ghcr_token | length > 0
+
+- name: Start the collector
+  community.docker.docker_compose_v2:
+    project_src: "{{ project_dir }}"
+    state: present
+    pull: always
+    remove_orphans: true
+
+- name: Wait until the collector holds a live core link and every assigned wallet
+  ansible.builtin.uri:
+    url: http://127.0.0.1:3010/health
+    status_code: 200
+  register: collector_health
+  until: collector_health.status == 200
+  retries: 24
+  delay: 5

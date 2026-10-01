@@ -1,0 +1,9 @@
+admin_cidrs    = ["203.0.113.7/32"]
+ssh_public_key = "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyReplaceMe deploy@laptop"
+domain         = "example.com"
+
+collectors = {
+  collector-1 = { cluster_id = 1 }
+  collector-2 = { cluster_id = 2 }
+  collector-3 = { cluster_id = 3 }
+}

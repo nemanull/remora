@@ -1,0 +1,17 @@
+---
+# Copy to vault.yml next to this file, fill it in, and run ansible-vault encrypt vault.yml.
+# Ansible loads this file too, so every value stays empty and a secret missing from vault.yml fails the deploy.
+# Passwords use only letters, digits, - and _, for example from openssl rand -hex 24.
+vault_postgres_password: ""
+vault_redis_password: ""
+# One token per cluster id, at least 32 characters, for example from openssl rand -hex 32.
+vault_cluster_tokens: {}
+# Hash of the dashboard password from caddy hash-password.
+vault_dashboard_password_hash: ""
+vault_grafana_admin_password: ""
+vault_telegram_bot_token: ""
+vault_telegram_chat_id: ""
+# A classic token with read:packages, only while the GHCR images are private.
+vault_ghcr_token: ""
+# Private key of the Hyperliquid API wallet, only for live mode.
+vault_hyperliquid_agent_key: ""
