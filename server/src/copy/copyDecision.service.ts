@@ -22,6 +22,7 @@ import { CopyEvents } from './copyEvents';
 import { POLICY_ORDER } from './copyPolicies';
 import {
   buildCoinSignal,
+  type SignalFill,
   STORED_FILL_SELECT,
   type StoredFill,
   toSignalFill,
@@ -320,9 +321,20 @@ export class CopyDecisionService {
       return;
     }
     const latestLeaderTime = await this.readLatestLeaderTime(book, pending);
-    if (latestLeaderTime !== null && pending.lastFillTime < latestLeaderTime) {
-      await this.recordOutOfOrder(book, pending);
-      return;
+    if (latestLeaderTime !== null) {
+      if (pending.lastFillTime < latestLeaderTime) {
+        await this.recordOutOfOrder(book, pending);
+        return;
+      }
+      const split = await this.splitAtLeaderTime(pending, latestLeaderTime);
+      if (split !== null) {
+        this.logger.log(
+          `Signal ${pending.key} on the ${book} book holds fills older than the last decided fill at ${latestLeaderTime.toISOString()}, deciding its later fills as ${split.later.key}`,
+        );
+        await this.recordOutOfOrder(book, split.older);
+        await this.decideOnBook(book, split.later);
+        return;
+      }
     }
     let view = await this.bookState.readBookView(book, pending.wallet);
     if (book === 'MAIN') {
@@ -396,6 +408,31 @@ export class CopyDecisionService {
       select: { leaderTime: true },
     });
     return latest?.leaderTime ?? null;
+  }
+
+  private async splitAtLeaderTime(
+    signal: Signal,
+    leaderTime: Date,
+  ): Promise<{ older: Signal; later: Signal } | null> {
+    const olderCount = await this.prisma.leaderFill.count({
+      where: { id: { in: signal.fillIds }, time: { lt: leaderTime } },
+    });
+    if (olderCount === 0) {
+      return null;
+    }
+    const fills = orderByIds(
+      await this.prisma.leaderFill.findMany({
+        where: { id: { in: signal.fillIds } },
+        select: STORED_FILL_SELECT,
+      }),
+      signal.fillIds,
+    ).map(toSignalFill);
+    const build = (part: SignalFill[]) =>
+      buildCoinSignal(signal.wallet, signal.coin, part, signal.source);
+    return {
+      older: build(fills.filter((fill) => fill.time < leaderTime)),
+      later: build(fills.filter((fill) => fill.time >= leaderTime)),
+    };
   }
 
   private async recordOutOfOrder(

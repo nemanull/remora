@@ -702,6 +702,55 @@ describe('WatchlistService', () => {
     expect(lastIndexOf(isEvent(WALLET_A, 'backfill'))).toBeLessThan(synced);
   });
 
+  it('resyncs a wallet whose snapshot starts after a backfill that already ended', async () => {
+    await startService();
+    core.sendAssign([{ address: WALLET_A, fillsSince: SINCE }]);
+    await core.waitForFrame(isSynced(WALLET_A));
+    const missed = createFill(30, SINCE + 3_000);
+    fillPages.set(WALLET_A, [[missed, createFill(31, SINCE + 3_100)]]);
+    socket().emit('userFills', {
+      isSnapshot: true,
+      user: WALLET_A,
+      fills: [createFill(31, SINCE + 3_100)],
+    });
+    const syncStarted = await core.waitForFrame(
+      (frame) => frame.type === 'syncStarted',
+    );
+    expect(core.frames[syncStarted]).toEqual({
+      type: 'syncStarted',
+      wallets: [WALLET_A],
+    });
+    await core.waitForFrame(
+      (frame) =>
+        frame.type === 'synced' && core.frames.indexOf(frame) > syncStarted,
+    );
+    expect(backfillStarts(WALLET_A)).toEqual([SINCE, SINCE]);
+    expect(backfilledTids(WALLET_A)).toEqual([30, 31]);
+  });
+
+  it('sends syncStarted before it forwards a snapshot that starts after a backfill that already ended', async () => {
+    await startService();
+    core.sendAssign([{ address: WALLET_A, fillsSince: SINCE }]);
+    await core.waitForFrame(isSynced(WALLET_A));
+    fillPages.set(WALLET_A, [
+      [createFill(30, SINCE + 3_000), createFill(31, SINCE + 3_100)],
+    ]);
+    socket().emit('userFills', {
+      isSnapshot: true,
+      user: WALLET_A,
+      fills: [createFill(31, SINCE + 3_100)],
+    });
+    await waitUntil(() => core.framesOf('synced').length === 2);
+    const syncStarted = indexOf((frame) => frame.type === 'syncStarted');
+    const snapshot = indexOf(isEvent(WALLET_A, 'snapshot'));
+    const backfill = lastIndexOf(isEvent(WALLET_A, 'backfill'));
+    const synced = lastIndexOf(isSynced(WALLET_A));
+    expect(syncStarted).toBeGreaterThan(-1);
+    expect(syncStarted).toBeLessThan(snapshot);
+    expect(snapshot).toBeLessThan(backfill);
+    expect(backfill).toBeLessThan(synced);
+  });
+
   it('syncs anyway and reports lagging once REST stays behind for the lag limit', async () => {
     const watchlist = await startService();
     core.sendAssign([{ address: WALLET_A, fillsSince: SINCE }]);

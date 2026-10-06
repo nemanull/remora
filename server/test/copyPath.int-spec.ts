@@ -6,7 +6,8 @@ import type { StartedPostgreSqlContainer } from '@testcontainers/postgresql';
 import { Decimal } from 'decimal.js';
 import { createHash, randomBytes } from 'node:crypto';
 import { Subject } from 'rxjs';
-import { afterAll, beforeAll, describe, expect, it } from 'vitest';
+import { afterAll, beforeAll, describe, expect, it, vi } from 'vitest';
+import { BookStateService } from '../src/books/bookState.service';
 import { validateServerConfig } from '../src/config';
 import { CopyDecisionService } from '../src/copy/copyDecision.service';
 import { CopyEventsModule } from '../src/copy/copyEvents.module';
@@ -47,7 +48,13 @@ const ETH: Market = {
   oraclePrice: MID,
 };
 
-const MARKETS = new Map([['ETH', ETH]]);
+const SOL: Market = { ...ETH, coin: 'SOL', assetIndex: 5 };
+const BTC: Market = { ...ETH, coin: 'BTC', assetIndex: 0 };
+const MARKETS = new Map([
+  ['ETH', ETH],
+  ['SOL', SOL],
+  ['BTC', BTC],
+]);
 
 function level(price: number, size: number) {
   return { price: new Decimal(price), size: new Decimal(size) };
@@ -81,10 +88,11 @@ function leaderFill(
   size: string,
   startPosition: string,
   ageMs = 200,
+  coin = 'ETH',
 ): HyperliquidFill {
   nextTid += 1;
   return {
-    coin: 'ETH',
+    coin,
     px: '3000',
     sz: size,
     side,
@@ -377,5 +385,80 @@ describe('copy path from a leader fill to a paper copy', () => {
     expect(decision).toMatchObject({ verdict: 'SKIP', reason: 'out_of_order' });
     const open = (await readShadowCopies()).filter((copy) => copy.isOpen);
     expect(open.map((copy) => copy.size.toString())).toEqual(['0.5']);
+  });
+
+  it('copies an episode that opened before a late snapshot once the resync covers the gap', async () => {
+    const opening = leaderFill('B', '10', '0', 600, 'SOL');
+    const adding = leaderFill('B', '5', '10', 500, 'SOL');
+    const snapshot = leaderFill('B', '5', '15', 400, 'SOL');
+    const ingestion = core.get(FillIngestionService);
+    const syncState = core.get(SyncStateService);
+    syncState.markSyncStarted(SESSION, [WALLET]);
+    await ingestion.ingestFills(
+      SESSION,
+      CLUSTER,
+      userFills('snapshot', [snapshot]),
+    );
+    await ingestion.ingestFills(
+      SESSION,
+      CLUSTER,
+      userFills('backfill', [opening, adding, snapshot]),
+    );
+    await syncState.completeSync(SESSION, CLUSTER, WALLET);
+    await core.get(CopyDecisionService).waitUntilIdle();
+
+    const decisions = await prisma.copyDecision.findMany({
+      where: { walletAddress: WALLET, coin: 'SOL' },
+    });
+    expect(decisions).toHaveLength(1);
+    expect(decisions[0]).toMatchObject({
+      signalKey: `${WALLET}-SOL-${opening.tid}`,
+      signalSource: 'catch_up',
+      action: 'OPEN',
+      verdict: 'COPY',
+    });
+    const copies = await prisma.copyPosition.findMany({
+      where: { walletAddress: WALLET, coin: 'SOL', isOpen: true },
+    });
+    expect(copies.map((copy) => copy.size.toString())).toEqual(['1']);
+    expect(copies[0].leaderOpenTid).toBe(BigInt(opening.tid));
+  });
+
+  it('never copies an episode late when the fills of a failed signal join a later catch-up', async () => {
+    vi.spyOn(core.get(BookStateService), 'readBookView').mockRejectedValueOnce(
+      new Error('Connection terminated unexpectedly'),
+    );
+    const opening = leaderFill('B', '10', '0', 900, 'BTC');
+    await ingest(userFills('stream', [opening]));
+    const adding = leaderFill('B', '5', '10', 800, 'BTC');
+    await ingest(userFills('stream', [adding]));
+    const syncState = core.get(SyncStateService);
+    syncState.markSyncStarted(SESSION, [WALLET]);
+    const missed = leaderFill('B', '5', '15', 700, 'BTC');
+    await core
+      .get(FillIngestionService)
+      .ingestFills(SESSION, CLUSTER, userFills('backfill', [missed]));
+    await syncState.completeSync(SESSION, CLUSTER, WALLET);
+    await core.get(CopyDecisionService).waitUntilIdle();
+
+    const copies = await prisma.copyPosition.findMany({
+      where: { walletAddress: WALLET, coin: 'BTC' },
+    });
+    expect(copies).toEqual([]);
+    const decisions = await prisma.copyDecision.findMany({
+      where: { walletAddress: WALLET, coin: 'BTC' },
+      orderBy: { id: 'asc' },
+    });
+    expect(
+      decisions.map((decision) => [decision.signalKey, decision.reason]),
+    ).toEqual([
+      [`${WALLET}-BTC-${adding.tid}`, 'position_not_copied'],
+      [`${WALLET}-BTC-${opening.tid}`, 'out_of_order'],
+      [`${WALLET}-BTC-${missed.tid}`, 'position_not_copied'],
+    ]);
+    const unsignalled = await prisma.leaderFill.count({
+      where: { walletAddress: WALLET, coin: 'BTC', signalledAt: null },
+    });
+    expect(unsignalled).toBe(0);
   });
 });

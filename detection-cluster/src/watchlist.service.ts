@@ -472,6 +472,11 @@ export class WatchlistService
       if (isSnapshot) {
         this.raiseBackfillTarget(wallet, oldestFillTime(fills));
       }
+      const resyncs =
+        isSnapshot && this.canForward() && this.startsAfterBackfill(wallet);
+      if (resyncs) {
+        this.link.send({ type: 'syncStarted', wallets: [wallet.address] });
+      }
       const isSent =
         this.canForward() &&
         this.link.send({
@@ -487,7 +492,9 @@ export class WatchlistService
         return;
       }
       this.recordSentFills(wallet, fills);
-      if (isSnapshot && isBackfillComplete(wallet.backfill)) {
+      if (resyncs) {
+        this.resyncPastSnapshot(wallet);
+      } else if (isSnapshot && isBackfillComplete(wallet.backfill)) {
         wallet.backfillTarget = null;
       }
       return;
@@ -596,6 +603,23 @@ export class WatchlistService
     ) {
       wallet.backfillTarget = time;
     }
+  }
+
+  private startsAfterBackfill(wallet: WatchedWallet): boolean {
+    return (
+      isBackfillComplete(wallet.backfill) &&
+      wallet.backfillTarget !== null &&
+      wallet.backfillTarget > wallet.backfillCursor
+    );
+  }
+
+  private resyncPastSnapshot(wallet: WatchedWallet): void {
+    wallet.backfillFrom = wallet.backfillCursor;
+    wallet.backfill = 'pending';
+    this.logger.log(
+      `Snapshot of wallet ${wallet.address} starts after its backfill ended, resyncing from ${new Date(wallet.backfillCursor).toISOString()}`,
+    );
+    this.startPendingBackfills();
   }
 
   private startPendingBackfills(): void {
