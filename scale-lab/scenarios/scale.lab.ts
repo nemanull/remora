@@ -52,6 +52,7 @@ describe('scale', () => {
         ['simulator REST lag, ms', settings.simulator.restLagMs],
         ['run after the initial sync, minutes', RUN_MS / 60_000],
         ['server REST budget per minute', 400],
+        ['of which paper book reads', 120],
         ['paper order latency, ms', 900],
       ],
       invariants,

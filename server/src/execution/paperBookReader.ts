@@ -1,5 +1,6 @@
-import { Injectable } from '@nestjs/common';
+import { Inject, Injectable } from '@nestjs/common';
 import { HyperliquidInfoClient, RateLimitedError } from '@remora/sdk';
+import { PAPER_BOOK_INFO_CLIENT } from '../hyperliquid/hyperliquid.module';
 import { type OrderBook, readOrderBook } from '../market/marketData.service';
 import { MetricsService } from '../metrics/metrics.service';
 
@@ -17,6 +18,7 @@ export class PaperBookReader {
   private readonly latestReads = new Map<string, BookRead>();
 
   constructor(
+    @Inject(PAPER_BOOK_INFO_CLIENT)
     private readonly infoClient: HyperliquidInfoClient,
     private readonly metrics: MetricsService,
   ) {}

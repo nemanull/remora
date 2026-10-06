@@ -27,6 +27,7 @@ describe('validateServerConfig', () => {
       HYPERLIQUID_WS_URL: 'wss://api.hyperliquid.xyz/ws',
       HYPERLIQUID_API_URL: 'https://api.hyperliquid.xyz',
       HYPERLIQUID_WEIGHT_PER_MINUTE: 400,
+      PAPER_BOOK_WEIGHT_PER_MINUTE: 120,
       TRACKED_TARGET: 6,
       SELECTION_STREAK_RUNS: 3,
       MAX_LIVE_LEADERS: 4,
@@ -94,6 +95,22 @@ describe('validateServerConfig', () => {
     expect(config.HYPERLIQUID_ACCOUNT_ADDRESS).toBe(
       '0xc5fdde670e647823dbf07a09c452fe3f33df8677',
     );
+  });
+
+  it('keeps the paper book share below the process budget', () => {
+    expect(() =>
+      validateServerConfig({
+        ...REQUIRED,
+        HYPERLIQUID_WEIGHT_PER_MINUTE: '120',
+      }),
+    ).toThrow(/PAPER_BOOK_WEIGHT_PER_MINUTE/);
+    expect(
+      validateServerConfig({
+        ...REQUIRED,
+        HYPERLIQUID_WEIGHT_PER_MINUTE: '200',
+        PAPER_BOOK_WEIGHT_PER_MINUTE: '50',
+      }).PAPER_BOOK_WEIGHT_PER_MINUTE,
+    ).toBe(50);
   });
 
   it('rejects an account address that is not an address', () => {

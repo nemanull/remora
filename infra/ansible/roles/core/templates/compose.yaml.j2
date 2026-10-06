@@ -71,6 +71,7 @@ services:
       HYPERLIQUID_API_URL: http://hyperliquid-sim:3030
 {% endif %}
       HYPERLIQUID_WEIGHT_PER_MINUTE: {{ core_weight_per_minute }}
+      PAPER_BOOK_WEIGHT_PER_MINUTE: {{ core_paper_book_weight_per_minute }}
 {% if core_execution_mode == 'live' %}
       HYPERLIQUID_ACCOUNT_ADDRESS: '{{ core_hyperliquid_account_address | lower }}'
       HYPERLIQUID_AGENT_KEY_FILE: /run/secrets/hyperliquid_agent_key

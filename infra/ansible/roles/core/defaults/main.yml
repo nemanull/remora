@@ -5,6 +5,7 @@ core_execution_mode: paper
 core_hyperliquid_network: mainnet
 core_hyperliquid_account_address: ""
 core_weight_per_minute: 400
+core_paper_book_weight_per_minute: 120
 core_wallet_finder_weight_per_minute: 600
 core_tracked_target: 16
 core_selection_streak_runs: 3

@@ -84,6 +84,7 @@ export const serverConfigSchema = z
     HYPERLIQUID_WS_URL: z.url().optional(),
     HYPERLIQUID_API_URL: z.url().optional(),
     HYPERLIQUID_WEIGHT_PER_MINUTE: positiveInteger(400),
+    PAPER_BOOK_WEIGHT_PER_MINUTE: positiveInteger(120),
     HYPERLIQUID_ACCOUNT_ADDRESS: accountAddress.optional(),
     HYPERLIQUID_AGENT_KEY_FILE: z.string().min(1).optional(),
     CLUSTER_TOKEN_HASHES: clusterTokenHashes,
@@ -116,6 +117,16 @@ export const serverConfigSchema = z
     TELEGRAM_CHAT_ID: z.string().min(1).optional(),
   })
   .superRefine((config, context) => {
+    if (
+      config.PAPER_BOOK_WEIGHT_PER_MINUTE >=
+      config.HYPERLIQUID_WEIGHT_PER_MINUTE
+    ) {
+      context.addIssue({
+        code: 'custom',
+        path: ['PAPER_BOOK_WEIGHT_PER_MINUTE'],
+        message: 'must stay below HYPERLIQUID_WEIGHT_PER_MINUTE',
+      });
+    }
     if (config.EXECUTION_MODE !== 'live') {
       return;
     }
