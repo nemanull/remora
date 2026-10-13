@@ -8,8 +8,9 @@ on:
 permissions:
   contents: read
 
+# Every commit on main runs in a group of its own, so no newer push cancels it and each one gets its images.
 concurrency:
-  group: ci-${{ github.ref }}
+  group: ci-${{ github.ref == 'refs/heads/main' && github.sha || github.ref }}
   cancel-in-progress: true
 
 jobs:
@@ -74,14 +75,31 @@ jobs:
           working_directory: infra/ansible
           requirements_file: requirements.yml
 
+      - run: pipx install --force ansible-core==2.21.5
+
+      - name: Render and check the deploy templates
+        run: |
+          for env in production staging; do
+            out="$RUNNER_TEMP/render/$env"
+            (cd infra/ansible && ansible-playbook -i "inventory/$env.example.yml" render.yml -e "render_root=$out")
+            for dir in "$out"/*/; do
+              docker compose -f "${dir}compose.yaml" config --quiet
+            done
+            for caddyfile in "$out"/*/Caddyfile; do
+              docker run --rm -v "$caddyfile:/etc/caddy/Caddyfile:ro" caddy:2.11.3 caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+            done
+          done
+
+  # Pull requests build every image without publishing it, so a broken Dockerfile fails before merge.
   images:
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     needs: [app, infra]
     runs-on: ubuntu-24.04
     timeout-minutes: 30
     permissions:
       contents: read
       packages: write
+    env:
+      PUBLISH: ${{ github.event_name == 'push' && github.ref == 'refs/heads/main' }}
     strategy:
       matrix:
         target: [server, wallet-finder, collector, web, hyperliquid-sim]
@@ -91,6 +109,7 @@ jobs:
       - uses: docker/setup-buildx-action@v4
 
       - uses: docker/login-action@v4
+        if: env.PUBLISH == 'true'
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -108,8 +127,8 @@ jobs:
         with:
           context: .
           target: ${{ matrix.target }}
-          push: true
+          push: ${{ env.PUBLISH == 'true' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
           cache-from: type=gha,scope=${{ matrix.target }}
-          cache-to: type=gha,mode=max,scope=${{ matrix.target }}
+          cache-to: ${{ env.PUBLISH == 'true' && format('type=gha,mode=max,scope={0}', matrix.target) || '' }}

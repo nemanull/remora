@@ -1,0 +1,18 @@
+---
+- name: Check the inputs of the Caddyfile
+  ansible.builtin.assert:
+    that:
+      - tls_mode in ['acme', 'internal']
+      - tls_mode == 'internal' or core_acme_email | length > 0
+      - dashboard_password_hash is match('^\$2[aby]\$')
+    fail_msg: Set the inventory and the environment's vault before rendering the core's Caddyfile.
+    quiet: true
+
+- name: Render the Caddyfile
+  ansible.builtin.template:
+    src: Caddyfile.j2
+    dest: "{{ project_dir }}/caddy/Caddyfile"
+    owner: root
+    group: root
+    mode: "0640"
+  notify: Reload caddy

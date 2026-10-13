@@ -16,12 +16,15 @@ output "core_domain" {
 output "ansible_inventory" {
   description = "Ansible inventory for make inventory ENV=production"
   value = templatefile("${path.module}/../inventory.yaml.tftpl", {
-    admin_user    = var.admin_user
-    core_domain   = "${vultr_dns_record.core.name}.${var.domain}"
-    tls_mode      = "acme"
-    run_simulator = false
-    ssh_jump_host = ""
-    core_ip       = vultr_instance.core.main_ip
+    environment    = "production"
+    admin_user     = var.admin_user
+    ssh_public_key = var.ssh_public_key
+    core_domain    = "${vultr_dns_record.core.name}.${var.domain}"
+    acme_email     = var.acme_email
+    tls_mode       = "acme"
+    run_simulator  = false
+    ssh_jump_host  = ""
+    core_ip        = vultr_instance.core.main_ip
     collectors = {
       for name, instance in vultr_instance.collector :
       name => { ip = instance.main_ip, cluster_id = var.collectors[name].cluster_id }

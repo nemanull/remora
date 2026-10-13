@@ -24,6 +24,12 @@
 	}
 
 	handle /api/* {
+		@crossSite {
+			header Origin *
+			not header Origin https://{{ core_domain | lower }}
+		}
+		respond @crossSite 403
+
 		basic_auth {
 			{{ core_dashboard_user }} {{ dashboard_password_hash }}
 		}

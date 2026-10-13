@@ -1,6 +1,8 @@
 ---
+# A Caddyfile written before a later task fails still reaches the running Caddy.
 - name: Deploy the core
   hosts: core
   become: true
+  force_handlers: true
   roles:
     - core

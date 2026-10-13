@@ -75,3 +75,9 @@
   until: collector_health.status == 200
   retries: 24
   delay: 5
+
+- name: Remove images that no container uses
+  community.docker.docker_prune:
+    images: true
+    images_filters:
+      dangling: false

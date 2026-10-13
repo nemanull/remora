@@ -5,16 +5,31 @@
       - ca-certificates
       - chrony
       - python3-debian
+      - python3-requests
       - ufw
       - unattended-upgrades
     state: present
     update_cache: true
     cache_valid_time: 3600
 
-- name: Authorize the admin key
+- name: Check that the inventory carries the admin key
+  ansible.builtin.assert:
+    that:
+      - admin_ssh_public_key is defined
+    fail_msg: Run make infra-apply, then make inventory, so the inventory carries the SSH key of terraform.tfvars.
+    quiet: true
+
+- name: Check that the admin key parses as an SSH public key
+  ansible.builtin.command: ssh-keygen -l -f -
+  args:
+    stdin: "{{ admin_ssh_public_key }}"
+  changed_when: false
+
+- name: Authorize the admin key and revoke every other key
   ansible.posix.authorized_key:
     user: "{{ ansible_user }}"
-    key: "{{ lookup('ansible.builtin.file', admin_ssh_public_key_file) }}"
+    key: "{{ admin_ssh_public_key }}"
+    exclusive: true
     state: present
 
 - name: Disable password and root logins over SSH

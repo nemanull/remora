@@ -1,7 +1,22 @@
 ---
 - name: Prepare every host
-  hosts: all
+  hosts: core:collectors
   become: true
+  gather_facts: false
+  pre_tasks:
+    - name: Wait until the host answers over SSH
+      ansible.builtin.wait_for_connection:
+        timeout: 300
+
+    # Exit code 2 means cloud-init finished with recoverable errors, such as a deprecated key in vendor data.
+    - name: Wait for cloud-init to finish the first boot
+      ansible.builtin.command: cloud-init status --wait
+      register: site_cloud_init
+      changed_when: false
+      failed_when: site_cloud_init.rc not in [0, 2]
+
+    - name: Gather facts
+      ansible.builtin.setup:
   roles:
     - base
     - docker

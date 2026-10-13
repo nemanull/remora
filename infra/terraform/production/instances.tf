@@ -31,8 +31,10 @@ resource "vultr_instance" "core" {
     hour = 5
   }
 
+  # Postgres lives on this disk, so a plan that would destroy or replace the core fails instead.
   lifecycle {
-    ignore_changes = [user_data]
+    ignore_changes  = [user_data]
+    prevent_destroy = true
   }
 }
 

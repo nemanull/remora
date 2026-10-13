@@ -30,6 +30,16 @@ variable "domain" {
   type        = string
 }
 
+variable "acme_email" {
+  description = "Contact address of the ACME account that Caddy opens for the core's certificate"
+  type        = string
+
+  validation {
+    condition     = can(regex("^[^@\\s]+@[^@\\s]+\\.[^@\\s]+$", var.acme_email)) && !can(regex("[@.]example\\.(com|net|org)$", lower(var.acme_email)))
+    error_message = "Set a real contact address such as ops@your-domain.com, not one at an example domain."
+  }
+}
+
 variable "core_plan" {
   description = "Vultr plan of the core host"
   type        = string

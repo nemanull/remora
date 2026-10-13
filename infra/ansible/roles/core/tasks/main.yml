@@ -15,7 +15,7 @@
       - cluster_tokens | length > 0
       - cluster_tokens.values() | map('string') | map('length') | min >= 32
       - groups['collectors'] | map('extract', hostvars, 'cluster_id') | difference(cluster_tokens.keys() | list) | length == 0
-    fail_msg: Set image_tag, the inventory variables and every secret of group_vars/all/vault.example.yml before deploying the core.
+    fail_msg: Set image_tag, the inventory variables and every secret of group_vars/all/vault.example.yml in group_vars/<environment>/vault.yml before deploying the core.
     quiet: true
 
 - name: Check the live trading inputs
@@ -83,13 +83,7 @@
   no_log: true
 
 - name: Render the Caddyfile
-  ansible.builtin.template:
-    src: Caddyfile.j2
-    dest: "{{ project_dir }}/caddy/Caddyfile"
-    owner: root
-    group: root
-    mode: "0640"
-  notify: Reload caddy
+  ansible.builtin.import_tasks: caddyfile.yml
 
 - name: Copy the Prometheus configuration
   ansible.builtin.copy:
@@ -166,3 +160,24 @@
     path: "{{ project_dir }}/caddy-data/caddy/pki/authorities/local/root.crt"
     timeout: 60
   when: tls_mode == 'internal'
+
+- name: Reload Caddy before the check from outside when its configuration changed
+  ansible.builtin.meta: flush_handlers
+
+- name: Wait until the core answers from outside with a valid certificate
+  ansible.builtin.uri:
+    url: https://{{ core_domain }}/
+    status_code: 401
+  delegate_to: localhost
+  become: false
+  register: core_public_health
+  until: core_public_health.status == 401
+  retries: 30
+  delay: 10
+  when: tls_mode == 'acme'
+
+- name: Remove images that no container uses
+  community.docker.docker_prune:
+    images: true
+    images_filters:
+      dangling: false

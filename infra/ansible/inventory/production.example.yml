@@ -1,22 +1,26 @@
 all:
   vars:
     ansible_user: deploy
+    admin_ssh_public_key: "ssh-ed25519 AAAAC3NzaC1lZDI1NTE5AAAAIExampleKeyReplaceMe deploy@laptop"
     core_domain: core.example.com
+    core_acme_email: "ops@example.com"
     tls_mode: acme
     run_simulator: false
   children:
-    core:
-      hosts:
-        core.example.com:
-          ansible_host: 203.0.113.10
-    collectors:
-      hosts:
-        collector-1:
-          ansible_host: 203.0.113.11
-          cluster_id: 1
-        collector-2:
-          ansible_host: 203.0.113.12
-          cluster_id: 2
-        collector-3:
-          ansible_host: 203.0.113.13
-          cluster_id: 3
+    production:
+      children:
+        core:
+          hosts:
+            core.example.com:
+              ansible_host: 203.0.113.10
+        collectors:
+          hosts:
+            collector-1:
+              ansible_host: 203.0.113.11
+              cluster_id: 1
+            collector-2:
+              ansible_host: 203.0.113.12
+              cluster_id: 2
+            collector-3:
+              ansible_host: 203.0.113.13
+              cluster_id: 3

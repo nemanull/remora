@@ -1,6 +1,9 @@
 ---
-# Copy to vault.yml next to this file, fill it in, and run ansible-vault encrypt vault.yml.
-# Ansible loads this file too, so every value stays empty and a secret missing from vault.yml fails the deploy.
+# Copy to group_vars/<environment>/vault.yml, where <environment> is production or staging, and fill it in.
+# Create $HOME/.config/remora/ and write a password to vault-password-<environment> in it with mode 600,
+# then run ansible-vault encrypt --vault-id <environment>@$HOME/.config/remora/vault-password-<environment> on the copy.
+# Each environment's hosts load only their own vault, so staging never holds a production secret.
+# Ansible loads this file for every host, so every value stays empty and a secret missing from a vault fails the deploy.
 # Passwords use only letters, digits, - and _, for example from openssl rand -hex 24.
 vault_postgres_password: ""
 vault_redis_password: ""

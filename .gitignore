@@ -47,7 +47,7 @@ coverage
 .env.local
 
 # Infrastructure state and secrets
-infra/ansible/group_vars/all/vault.yml
+infra/ansible/group_vars/*/vault.yml
 .terraform/
 *.tfstate
 *.tfstate.*

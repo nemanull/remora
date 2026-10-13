@@ -2,7 +2,6 @@
 project_dir: /opt/remora
 image_registry: ghcr.io/nemanull
 ghcr_username: nemanull
-admin_ssh_public_key_file: ~/.ssh/id_ed25519.pub
 
 ghcr_token: "{{ vault_ghcr_token }}"
 cluster_tokens: "{{ vault_cluster_tokens }}"

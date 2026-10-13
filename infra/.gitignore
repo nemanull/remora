@@ -1,4 +1,5 @@
 terraform/*/terraform.tfvars
 ansible/inventory/production.yml
 ansible/inventory/staging.yml
+ansible/inventory/*.tmp
 ansible/.ansible/

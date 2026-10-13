@@ -1,4 +1,13 @@
 ---
+- name: Let every collector of the inventory through the core's allowlist
+  hosts: core
+  become: true
+  tasks:
+    - name: Render the core's Caddyfile from the current inventory
+      ansible.builtin.import_role:
+        name: core
+        tasks_from: caddyfile
+
 - name: Deploy collectors one host at a time
   hosts: collectors
   serial: 1

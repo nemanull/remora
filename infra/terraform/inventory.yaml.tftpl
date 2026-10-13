@@ -1,21 +1,25 @@
 all:
   vars:
     ansible_user: ${admin_user}
+    admin_ssh_public_key: ${jsonencode(ssh_public_key)}
     core_domain: ${core_domain}
+    core_acme_email: ${jsonencode(acme_email)}
     tls_mode: ${tls_mode}
     run_simulator: ${run_simulator}
 %{ if ssh_jump_host != "" ~}
     ansible_ssh_common_args: -o ProxyJump=${ssh_jump_host}
 %{ endif ~}
   children:
-    core:
-      hosts:
-        ${core_domain}:
-          ansible_host: ${core_ip}
-    collectors:
-      hosts:
+    ${environment}:
+      children:
+        core:
+          hosts:
+            ${core_domain}:
+              ansible_host: ${core_ip}
+        collectors:
+          hosts:
 %{ for name, collector in collectors ~}
-        ${name}:
-          ansible_host: ${collector.ip}
-          cluster_id: ${collector.cluster_id}
+            ${name}:
+              ansible_host: ${collector.ip}
+              cluster_id: ${collector.cluster_id}
 %{ endfor ~}

@@ -1,0 +1,59 @@
+---
+# CI renders the deploy templates of an example inventory with dummy secrets, so a broken template fails before a deploy.
+- name: Render the deploy templates of every host
+  hosts: all
+  connection: local
+  gather_facts: false
+  vars:
+    image_tag: render
+    render_dir: "{{ render_root }}/{{ inventory_hostname }}"
+    vault_postgres_password: render_postgres_password
+    vault_redis_password: render_redis_password
+    vault_cluster_tokens:
+      1: "{{ '1' * 64 }}"
+      2: "{{ '2' * 64 }}"
+      3: "{{ '3' * 64 }}"
+    vault_dashboard_password_hash: $2a$14$LD7TnSF1MGhPacYU7jRTA.Lfp0GPnEDF2gVCdOChyvQZrIkU6Y6vO
+    vault_grafana_admin_password: render_grafana_password
+  tasks:
+    - name: Load the defaults of the core role without running its tasks
+      ansible.builtin.import_role:
+        name: core
+      when: false
+
+    - name: Load the defaults of the collector role without running its tasks
+      ansible.builtin.import_role:
+        name: collector
+      when: false
+
+    - name: Create the output directory
+      ansible.builtin.file:
+        path: "{{ render_dir }}"
+        state: directory
+        mode: "0755"
+
+    - name: Render the core's files
+      ansible.builtin.template:
+        src: roles/core/templates/{{ item.src }}
+        dest: "{{ render_dir }}/{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - src: compose.yaml.j2
+          dest: compose.yaml
+        - src: env.j2
+          dest: .env
+        - src: Caddyfile.j2
+          dest: Caddyfile
+      when: inventory_hostname in groups['core']
+
+    - name: Render the collector's files
+      ansible.builtin.template:
+        src: roles/collector/templates/{{ item.src }}
+        dest: "{{ render_dir }}/{{ item.dest }}"
+        mode: "0644"
+      loop:
+        - src: compose.yaml.j2
+          dest: compose.yaml
+        - src: env.j2
+          dest: .env
+      when: inventory_hostname in groups['collectors']

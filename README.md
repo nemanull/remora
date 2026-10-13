@@ -125,11 +125,12 @@ cp detection-cluster/.env.example detection-cluster/.env
 pnpm --filter server prisma:migrateDeploy
 pnpm --filter server start:dev
 pnpm --filter detection-cluster start:dev
-REDIS_URL=redis://127.0.0.1:6379 pnpm --filter wallet-finder start:dev
+REDIS_URL=redis://127.0.0.1:6379 HYPERLIQUID_WEIGHT_PER_MINUTE=500 pnpm --filter wallet-finder start:dev
 pnpm --filter dashboard dev
 ```
 
 The example files pair the collector's dev token with the hash the server accepts.
+Their REST budgets of 300 for the collector and 300 for the server, with 500 for wallet-finder, keep the home IP under its 1,200 a minute.
 Add a wallet by hand with `curl -X POST 127.0.0.1:3000/api/leaders -H 'content-type: application/json' -d '{"address":"0x..."}'`, and it enters the shadow book at once.
 Vite serves the dashboard on http://127.0.0.1:5173 and proxies `/api` to the server.
 
@@ -161,18 +162,27 @@ It calls the info endpoint that `HYPERLIQUID_API_URL` names, which can be the si
 
 Production is one core and one collector per public IPv4 on Vultr in Tokyo, the closest region to Hyperliquid's API.
 
-1. Copy `infra/terraform/production/terraform.tfvars.example` to `terraform.tfvars`, set the admin CIDRs, the SSH key, the domain and the `collectors` map, and export `VULTR_API_KEY`.
+1. Copy `infra/terraform/production/terraform.tfvars.example` to `terraform.tfvars`, set the admin CIDRs, the SSH key you connect with, the domain, the ACME contact address and the `collectors` map, and export `VULTR_API_KEY`.
+   The domain must already be a zone in Vultr DNS.
 2. `make infra-apply` creates the hosts, the firewall groups and the DNS record, and `make inventory` writes the Ansible inventory.
+   Terraform refuses any plan that would destroy or replace the core, because Postgres lives on its disk.
 3. Back up `infra/terraform/production/terraform.tfstate` after every apply, because the state is local and gitignored.
-4. Copy `infra/ansible/group_vars/all/vault.example.yml` to `vault.yml` next to it, fill in every value, encrypt it with `ansible-vault encrypt`, and keep the vault password in `~/.config/remora/vault-password`.
-5. Install the collections with `ansible-galaxy collection install -r infra/ansible/requirements.yml`, then run `make site` once per host.
+4. Create `infra/ansible/group_vars/production/`, copy `infra/ansible/group_vars/all/vault.example.yml` into it as `vault.yml`, and fill in every value.
+   Create `~/.config/remora/` and write a vault password to `vault-password-production` in it with mode 600, which is where `make` reads it.
+   Then encrypt the copy with `ansible-vault encrypt --vault-id production@$HOME/.config/remora/vault-password-production infra/ansible/group_vars/production/vault.yml`.
+   Staging keeps its own vault in `group_vars/staging/` under `vault-password-staging`, so the home server never holds a production secret.
+5. Install the collections with `ansible-galaxy collection install -r infra/ansible/requirements.yml`, then run `make site` to prepare every host.
+   It waits for cloud-init, keeps only the SSH key from `terraform.tfvars`, hardens SSH and the firewall, and installs Docker.
 6. Push to `main` and let CI build and push the images to GHCR.
    Then run `make deploy TAG=<full commit SHA>`, which deploys the core first and the collectors one at a time behind a health gate.
+   The core's deploy ends only once `https://core.<domain>` answers the laptop with a valid certificate.
 
-Adding a collector means adding its token to the vault, redeploying the core, adding an entry to the `collectors` map, applying Terraform, regenerating the inventory, and running `make site` and `make deploy-collectors` for it.
+Adding a collector means adding its token to the vault and its entry to the `collectors` map, then running `make infra-apply`, `make inventory`, `make site`, `make deploy-core` and `make deploy-collectors`, with `TAG` set to the release that runs now.
+`make deploy-core` gives the core the new token, and `make deploy-collectors` first rewrites the core's Caddyfile from the inventory, so the core lets in a collector whose address is new.
 
 Staging uses the same playbooks on Incus system containers on a home server, with the simulator on the core and Caddy's internal certificate authority.
-After `incus admin init` and trusting the laptop, `make infra-apply ENV=staging`, `make inventory ENV=staging`, `make site ENV=staging` and `make deploy ENV=staging TAG=<sha>` bring it up.
+After `incus admin init` and trusting the laptop, copy `infra/terraform/staging/terraform.tfvars.example` to `terraform.tfvars` and fill in `group_vars/staging/vault.yml` the same way.
+Then `make infra-apply ENV=staging`, `make inventory ENV=staging`, `make site ENV=staging` and `make deploy ENV=staging TAG=<full commit SHA>` bring it up.
 `make lab-home` runs the scale lab on the home server through `DOCKER_HOST`.
 
 ## Live trading
