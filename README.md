@@ -1,5 +1,11 @@
 # remora
 
+[![CI](https://github.com/nemanull/remora/actions/workflows/ci.yml/badge.svg?branch=main)](https://github.com/nemanull/remora/actions/workflows/ci.yml)
+[![TypeScript](https://img.shields.io/badge/TypeScript-5.9-3178C6?logo=typescript&logoColor=white)](tsconfig.base.json)
+[![Terraform](https://img.shields.io/badge/Terraform-1.14-844FBA?logo=terraform&logoColor=white)](infra/terraform)
+[![Ansible](https://img.shields.io/badge/Ansible-2.21-EE0000?logo=ansible&logoColor=white)](infra/ansible)
+[![Docker Compose](https://img.shields.io/badge/Docker_Compose-v2-2496ED?logo=docker&logoColor=white)](docker-compose.yml)
+
 remora is a copy-trading system for Hyperliquid perpetuals.
 It scores the large wallets of the public leaderboard every day, watches the best of them in real time, and copies their trades in paper mode or live.
 This README is the whole write-up of the project, from the design to the measurements and the verdict.
