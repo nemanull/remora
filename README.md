@@ -2,6 +2,7 @@
 
 remora is a copy-trading system for Hyperliquid perpetuals.
 It scores the large wallets of the public leaderboard every day, watches the best of them in real time, and copies their trades in paper mode or live.
+This README is the whole write-up of the project, from the design to the measurements and the verdict.
 
 ## Architecture
 
@@ -207,3 +208,125 @@ The system works with a single collector, and whether to run more than one is a 
 The terms also close the interface to persons in some jurisdictions, including the United States, so live trading stays off unless the operator is eligible.
 
 None of this is a claim that copying these leaders makes money.
+
+## Measured
+
+Every number in this section comes from a report in [`reports/`](./reports/) and carries the label of how it was produced.
+
+- **simulated**: the scale lab ran the real images against `hyperliquid-sim` on one Docker host, so the leaders, the market and the per-IP limits were the simulator's.
+- **replay**: a leader's historical fills ran through the decision engine with a modelled latency of 1,200 ms, a mid drift of 2 bps against the copy and a sweep cost of 1.4 bps per fill.
+- **paper, simulated market**: the compose stack ran in paper mode against `hyperliquid-sim`, so the paper fills walked synthetic books.
+
+The runs took place on 2026-10-05 and 2026-10-06 UTC, after the code they measure was written.
+The scale-lab reports ran on the final code.
+The paper run and the replays ran on 2026-10-05, before two late fixes to rare recovery paths and before paper book reads got a budget of their own.
+Nothing here comes from a paper run against the real Hyperliquid API, from live trading or from testnet, because none of those has been run yet.
+
+### Scale and failure, simulated, 2026-10-06
+
+Every scenario checks four invariants against the simulator's ground truth: no fill of a tracked wallet missing from Postgres, no decision chain broken or doubled, no open copy away from k times its leader without a recorded reason, and no limit refusal the scenario did not provoke.
+
+| Scenario | Setup | Result |
+|---|---|---|
+| baseline | 3 collectors, 24 wallets, simulator speed 10, 10 minutes | all four invariants held, 216 simulator fills compared with 0 missing, 138 decisions in 20 chains with 0 breaks |
+| collector loss | 6 collectors and 24 wallets, 2 collectors killed | the 8 orphaned wallets were subscribed again 30.6 s after the kill and synced 39.7 s after it, 0 of 350 fills missing |
+| core restart | 4 collectors and 32 wallets, the server stopped with SIGTERM and later killed with SIGKILL | the server answered again after 2.7 s and 2.8 s, every wallet synced 23.8 s and 24.9 s after the stops, 10 catch-up decisions, 0 of 610 fills missing, 0 chain breaks |
+| upstream storm | 4 collectors and 32 wallets, every socket dropped 5 times 12 s apart | at most 4 new connections a minute from the busiest address against a limit of 30, every wallet synced 28.3 s after the last drop, 0 of 450 fills missing |
+| database outage | 4 collectors and 24 wallets, Postgres stopped for 32 s | 4 sessions closed with 4005, every wallet synced 39.2 s after Postgres returned, 0 of 330 fills missing |
+| user limit | two collectors of 6 wallets on one source address, a third of 8 started later | the simulator refused 4 users, both collectors dropped to 5 wallets, and the 2 waiting wallets moved to the third collector |
+| discovery | a full run over 300 synthetic wallets with a tracked target of 16 | 15 of the 16 selected wallets carry a planted edge, against 11 of the top 16 by all-time PnL, 7 of the top 16 by 30-day PnL and 44 of all 262 leaderboard rows that are not vaults |
+| scale | 12 collectors, 96 wallets, simulator speed 100, 10 minutes | all four invariants held, 10,471 simulator fills compared with 0 missing, 5,245 decisions in 170 chains with 0 breaks, a server event-loop lag p99 of at most 13.8 ms |
+
+Latency of stream signals in the baseline, from the timestamps stored in Postgres:
+
+| Step | p50 ms | p90 ms | p99 ms |
+|---|---|---|---|
+| leader fill to collector receive, the simulator's own 200 ms push tick | 116 | 185.2 | 198 |
+| collector receive to core store | 3 | 9 | 71.6 |
+| collector receive to decision | 16 | 32.4 | 496.4 |
+| decision to order submit | 5 | 12.2 | 33.8 |
+| order submit to acknowledgement, the configured 900 ms paper latency | 906 | 912.2 | 921.8 |
+| leader fill to acknowledgement | 1,043 | 1,128.2 | 1,544.4 |
+
+The server's event-loop lag stayed at a p99 of 10.6 ms at the median and 12.4 ms at worst.
+
+The scale scenario compresses a hundred times the normal trading into real time, while every REST budget stays real time.
+Paper fills of both books may spend 120 of the server's 400 weight a minute.
+At this speed they asked for more, so the server spent its 120 every minute and paper acknowledgements waited 45.6 s at the median.
+Each leader's decisions queued behind its own paper orders, and 1,522 of the 5,245 decisions came too late to enter and were skipped as `stale_signal`.
+No fill went missing and no decision chain broke meanwhile.
+The server's event loop stayed at a p99 of 11.7 ms at the median.
+At real speed the same leaders trade a hundred times less often, so this ceiling belongs to the compressed test.
+The separate paper budget keeps it away from live orders.
+
+### Replays of 30 days, replay, 2026-09-05 to 2026-10-05
+
+Each replay copied one leader with 5,000 USD through the same engine, with 15-minute candles for marks and stops and realized funding.
+Six of the leaders are simulator wallets that the paper run's discovery selected, and their history is synthetic.
+The seventh is a real wallet read from the Hyperliquid API, which was picked from data that covers the replay window, so it carries selection bias.
+
+| Leader | History | Main-dex fills | Copies closed | Copy return on 5,000 USD | Leader return over the same trades | Capture ratio | Copy gap, USD |
+|---|---|---|---|---|---|---|---|
+| `0x45d2c2b9d45223798c89798e12e7a941ab6d0125` | synthetic | 3,598 | 88 | 1.38% | 2.58% | 0.535 | -59.97 |
+| `0x4995d367e0d3aa186219e95aa15bcfc8d3cdb978` | synthetic | 2,677 | 89 | 4.18% | 4.94% | 0.846 | -38.04 |
+| `0x85f09fd12f9ed71348875d6cdd79e5406eeb7aac` | synthetic | 3,216 | 89 | 2.72% | 3.56% | 0.765 | -41.86 |
+| `0x914792c8e66ce4f7ceb939f0d0ff90555fd1af1a` | synthetic | 2,281 | 93 | 1.59% | 3.22% | 0.493 | -81.56 |
+| `0x96d24d1721f225646569638204b44d33aafea620` | synthetic | 2,841 | 91 | -0.92% | 0.46% | -2.025 | -68.89 |
+| `0xf3d470fed8671fabce8800b4fdd00e505ee936b4` | synthetic | 2,274 | 89 | -0.28% | 0.64% | -0.445 | -46.08 |
+| `0xad5455057feac38a2dd2210d0fac0854d1eb6203` | real, Hyperliquid API | 5,315 | 22 | 20.05% | 22.86% | 0.877 | -140.38 |
+
+The copy gap is the copy's PnL after fees and funding minus k times the leader's PnL over the same episodes.
+For the real wallet it splits into -36.47 USD of entry drift, -36.84 of exit drift, -59.97 of fee difference, -6.40 of funding and a residual of -0.70.
+Of its 1,178 decisions, 450 were deferred under the 10 USD minimum.
+It ended with one copy open at -105.57 USD of unrealized PnL, which the return above leaves out.
+
+### Paper run against the simulator, paper with a simulated market, 2026-10-05
+
+The compose stack ran from 22:21 to 23:55 UTC, with `SIM_SPEED=30`.
+
+- Discovery read 277 leaderboard rows, kept 58 after stage one, scored 45 in stage three, and 32 passed every gate.
+- Selection put 6 wallets into the shadow book, which stored 704 stream fills and made 100 decisions: 94 copied and 6 skipped as `position_not_copied`.
+- 96 paper orders filled, and 24 copies opened and 19 closed.
+- From the leader's fill to the paper acknowledgement took 1,055 ms at p50 and 1,121 ms at p90, of which the configured paper latency was 900 ms.
+- From the collector receiving a fill to the decision took 25 ms at p50 and 38.1 ms at p90.
+- The 19 closed copies made -0.79 USD against 1.27 USD for the leaders scaled by k, a gap of -2.06 USD made of 1.52 entry drift, 0.25 exit drift, -3.58 fee difference, -0.02 funding and -0.23 residual.
+
+### Not measured yet
+
+- A paper run of at least 7 days against the real Hyperliquid API, the run that would show real fill latency, drift and the copy gap of real leaders.
+- Replays of stage-three wallets chosen from data older than their replay window.
+- The testnet smoke, and any live trading.
+
+## Verdict
+
+Every number here comes from the reports behind Measured.
+The scale-lab numbers are simulated, the replay numbers are replays of their window, and the paper run used a simulated market.
+
+The copy machinery held up.
+All four invariants held in all eight scale-lab scenarios, so no tracked fill went missing and no decision chain broke or doubled.
+The affected wallets were synced again between 23.8 s and 39.7 s after a collector kill, a server stop, the last socket drop or the return of Postgres.
+Under the upstream storm the busiest address opened at most 4 new connections a minute, against a limit of 30.
+When the simulator refused 4 users on a shared address, the 2 wallets left waiting moved to a third collector.
+The paper run went through the whole path, from discovery to 19 closed copies.
+In the baseline a decision came 16 ms at p50, 32.4 ms at p90 and 496.4 ms at p99 after the collector received the fill.
+In the paper run the same step took 25 ms at p50 and 38.1 ms at p90.
+The scale scenario ran into the paper book budget, and 1,522 of its 5,245 decisions came too late to enter.
+That ceiling comes from trading a hundred times faster than normal, and the separate paper budget keeps it away from live orders.
+
+Discovery mostly picked wallets with the simulator's planted edge.
+Of the 16 wallets it selected, 15 carry a planted edge, against 11 of the top 16 by all-time PnL and 7 of the top 16 by 30-day PnL.
+That edge is the simulator's own, so this shows the score can find it, not that real leaders have one.
+
+Copying kept only part of what the leaders made.
+In the replays of 30 days, five of the seven leaders had a capture ratio from 0.493 to 0.877.
+The two leaders with the smallest returns, 0.46% and 0.64%, turned into copy losses of -0.92% and -0.28%.
+The copy gap was negative for all seven, from -38.04 USD to -140.38 USD on 5,000 USD per leader.
+For the real wallet the fee difference was the largest single part of the gap, -59.97 of -140.38 USD.
+That wallet is the only replay on real market data, and it carries selection bias.
+
+How remora fares on the real market is still unknown.
+There has been no paper run against the real Hyperliquid API, no testnet smoke and no live trading.
+So fill latency, drift and the copy gap of real leaders followed in real time are not measured yet.
+No replay yet uses wallets chosen from data older than its window.
+
+remora does what it was built for, but whether copying these leaders makes money is unproven, and the next step is a paper run of at least 7 days against the real API.
