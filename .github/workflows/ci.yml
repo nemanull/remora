@@ -75,7 +75,14 @@ jobs:
           working_directory: infra/ansible
           requirements_file: requirements.yml
 
-      - run: pipx install --force ansible-core==2.21.5
+      # The runner image's ansible-core sits in a pipx home that root owns, so the pinned one gets a home of its own.
+      - name: Install ansible-core
+        env:
+          PIPX_HOME: ${{ runner.temp }}/pipx
+          PIPX_BIN_DIR: ${{ runner.temp }}/pipx/bin
+        run: |
+          pipx install ansible-core==2.21.5
+          echo "$PIPX_BIN_DIR" >> "$GITHUB_PATH"
 
       - name: Render and check the deploy templates
         run: |
